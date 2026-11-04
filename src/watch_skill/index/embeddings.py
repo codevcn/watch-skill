@@ -26,12 +26,14 @@ def _get_model(name: str):
         import warnings  # noqa: PLC0415
 
         from fastembed import TextEmbedding  # noqa: PLC0415
+        from watch_skill.config import get_settings  # noqa: PLC0415
 
+        cache_dir = str(get_settings().data_dir / "models" / "fastembed")
         with warnings.catch_warnings():
             # informational pooling-change notice; the multilingual bench in
             # docs/DECISIONS.md was measured on the current (mean) pooling
             warnings.filterwarnings("ignore", message=".*mean pooling.*")
-            _models[name] = TextEmbedding(model_name=name)
+            _models[name] = TextEmbedding(model_name=name, cache_dir=cache_dir)
     except ImportError:
         _unavailable = True
         print(

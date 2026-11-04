@@ -80,6 +80,8 @@ autogen = ["autogen-core>=0.4,<0.8"]
 # OCR and Whisper are left out on purpose — captions cover transcription for
 # most sources, and both add ~170 MB. `doctor` reports what is missing and
 # prints the one command that adds it.
+# CLI extra: perception, OCR, and semantic search (for standalone CLI & agent execution)
+cli = ["watch-skill[perceive,ocr,index]"]
 standard = ["watch-skill[perceive,index,mcp]"]
 all = ["watch-skill[perceive,ocr,whisper,index,mcp,api,loop,attest]"]
 

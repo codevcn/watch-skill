@@ -111,12 +111,36 @@ Three entry paths. Pick the row that describes you.
 
 | You have | You want | Go to |
 | --- | --- | --- |
-| An agent already (Claude Code, Cursor, Codex, any MCP client) | Give it eyes, ears and verification | [Watch Skill](#1-add-watch-skill-to-an-agent-you-already-use) |
+| Windows (Standalone, Zero Python Install) | Download single `.exe` binary | [Standalone Binary Release](#standalone-binary-windows) |
+| An agent already (Claude Code, Cursor, Codex, Antigravity, any MCP/CLI client) | Give it eyes, ears and verification | [Watch Skill](#1-add-watch-skill-to-an-agent-you-already-use) |
 | Nothing yet | The whole workspace, agent included | [DeepWatch](#2-the-whole-workspace) |
 | A DeepSeek Harness you already run | Add Watch to it, keep your setup | [`@deepwatch/dsh-bundle`](#3-into-a-deepseek-harness-you-already-run) |
 
+### Standalone Binary (Windows)
+
+For zero-dependency deployment and AI Agent pair-programming on Windows, download the precompiled single-file executable from [GitHub Releases](https://github.com/codevcn/watch-skill/releases):
+
+```powershell
+# Run directly from terminal or pass to your AI Agent
+.\watch-skill-windows-x86_64.exe --version
+.\watch-skill-windows-x86_64.exe doctor --json
+.\watch-skill-windows-x86_64.exe watch "<video-url-or-file>" --json
+.\watch-skill-windows-x86_64.exe ask <video_id> "What happened?" --json
+.\watch-skill-windows-x86_64.exe moment <video_id> 01:15 --window 10.0 --json
+```
+
 ### 1. Add Watch Skill to an agent you already use
 
+#### Via `uvx` / `pipx` (Recommended for Python CLI users)
+```bash
+# Ephemeral run via uvx
+uvx --from "watch-skill[cli]" watch-skill --help
+
+# Or persistent install via pipx
+pipx install "watch-skill[cli]"
+```
+
+#### Via `pip`
 ```bash
 pip install 'watch-skill[standard]'   # frames, retrieval and the MCP server
 watch-skill doctor                    # checks, and repairs what it can
@@ -159,6 +183,22 @@ npx skills add oxbshw/watch-skill -g
 **[Every supported client, and how far each is verified →](docs/agents/README.md)**
 
 </div>
+
+### Agent CLI Protocol & Standalone AI Skills
+
+When invoking `watch-skill` from an AI Agent (Antigravity, Codex, Claude Code, Gemini CLI, Cursor):
+
+1. **Deterministic `--json` Envelope**: Pass `--json` to `watch`, `ask`, `moment`, `search`, `list`, or `config` to get clean JSON on stdout, with errors structured with a actionable `fix`:
+   ```bash
+   watch-skill moment <video_id> 00:45 --window 8.0 --json
+   ```
+2. **Visual Verification via `frame_paths`**: The JSON envelope returns absolute, resolved paths to disk in `frame_paths`. Agents can use their native file-reading or multimodal inspection tools to view frames directly and verify visual UI states.
+3. **Safe Secret Management (`config set`)**: Configure API keys (Groq Whisper, Anthropic, OpenAI) without touching `.env` files:
+   ```bash
+   watch-skill config set WATCHSKILL_GROQ_API_KEY gsk_...
+   watch-skill config list --json   # Secrets are automatically masked
+   ```
+4. **Agent Skill**: Install or provide `skills/watch-video-cli/SKILL.md` to your agent for automated ffmpeg detection/installation, temporal drill-down, and structured error recovery.
 
 ### 2. The whole workspace
 

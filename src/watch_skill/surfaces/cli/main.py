@@ -140,6 +140,9 @@ def watch(
         "--detail",
         help="Frame-budget preset: transcript | efficient | balanced | token-burner.",
     ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Output as JSON for AI agents."
+    ),
 ) -> None:
     """Watch a video: acquire -> scenes -> frames -> OCR -> transcript -> report."""
     from pathlib import Path
@@ -161,6 +164,16 @@ def watch(
             "token-burner": 96,
         }
         if preset not in presets:
+            if json_output:
+                from watch_skill.surfaces.cli.envelope import emit_json_error
+
+                emit_json_error(
+                    command="watch",
+                    code="perceive.bad_detail",
+                    message=f"unknown --detail '{detail}'; expected one of: {', '.join(presets)}",
+                    fix=f"pass one of: {', '.join(presets)}",
+                )
+                raise typer.Exit(code=2) from None
             _console.print(
                 f"[red]error:[/red] unknown --detail {_plain(repr(detail))}; "
                 f"expected one of: {', '.join(presets)}"
@@ -197,14 +210,80 @@ def watch(
             use_cache=not no_cache,
         )
     except WatchSkillError as exc:
+        if json_output:
+            from watch_skill.surfaces.cli.envelope import emit_json_error
+
+            emit_json_error(
+                command="watch",
+                code=exc.code,
+                message=str(exc),
+                fix=getattr(exc, "fix", None),
+                details=exc.details,
+            )
+            raise typer.Exit(code=1) from None
         _console.print(f"[red]error:[/red] {_plain(exc)}")
         print(json.dumps(exc.to_dict(), indent=2))
         raise typer.Exit(code=1) from None
+
+    video_id = None
     if index and result.perception is not None:
         from watch_skill.index import index_watch_result
 
         video_id = index_watch_result(result)
-        print(f"> **Indexed:** video_id `{video_id}` — follow up with `watch-skill ask {video_id} ...`\n")
+        if not json_output:
+            print(f"> **Indexed:** video_id `{video_id}` — follow up with `watch-skill ask {video_id} ...`\n")
+
+    if json_output:
+        from watch_skill.surfaces.cli.envelope import (
+            OutputEnvelope,
+            clean_frame_paths,
+            emit_json,
+        )
+
+        frame_paths = clean_frame_paths(
+            [f.path for f in (result.perception.frames if result.perception else [])]
+        )
+        evidence = []
+        if result.transcript and result.transcript.segments:
+            for seg in result.transcript.segments[:20]:
+                evidence.append({
+                    "type": "transcript",
+                    "timestamp": seg.start,
+                    "end": seg.end,
+                    "text": seg.text,
+                })
+        if result.perception and result.perception.frames:
+            for fr in result.perception.frames[:20]:
+                for ocr_item in fr.ocr_text:
+                    evidence.append({
+                        "type": "ocr",
+                        "timestamp": fr.timestamp,
+                        "text": ocr_item,
+                    })
+
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="watch",
+            video_id=video_id,
+            answer=None,
+            confidence=None,
+            evidence=evidence,
+            frame_paths=frame_paths,
+            data={
+                "source": source,
+                "duration": result.metadata.duration_seconds,
+                "width": result.metadata.width,
+                "height": result.metadata.height,
+                "fps": result.metadata.fps,
+                "has_audio": result.metadata.has_audio,
+                "transcript_source": result.transcript.source,
+                "transcript_segments_count": len(result.transcript.segments),
+            },
+        )
+        emit_json(env)
+        return
+
     if question:
         print(f"> **Question:** {question}\n")
     print(render_report(result))
@@ -266,6 +345,7 @@ def ask(
     frames: bool = typer.Option(False, "--frames", help="Always list evidence frame paths."),
     no_verify: bool = typer.Option(False, "--no-verify", help="Skip the model verify pass."),
     no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the semantic answer cache."),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
 ) -> None:
     """Ask an already-indexed video a question (self-healing answer engine)."""
     from watch_skill.answer import answer_question
@@ -279,8 +359,55 @@ def ask(
             use_cache=not no_cache,
         )
     except WatchSkillError as exc:
+        if json_output:
+            from watch_skill.surfaces.cli.envelope import emit_json_error
+
+            emit_json_error(
+                command="ask",
+                code=exc.code,
+                message=str(exc),
+                fix=getattr(exc, "fix", None),
+                details=exc.details,
+                video_id=video,
+            )
+            raise typer.Exit(code=1) from None
         print(json.dumps(exc.to_dict(), indent=2))
         raise typer.Exit(code=1) from None
+
+    if json_output:
+        from watch_skill.surfaces.cli.envelope import (
+            OutputEnvelope,
+            clean_frame_paths,
+            emit_json,
+        )
+
+        frame_paths = clean_frame_paths(answer.frames)
+        evidence = []
+        if hasattr(answer, "evidence") and answer.evidence:
+            for ev in answer.evidence:
+                evidence.append(dict(ev) if isinstance(ev, dict) else vars(ev))
+
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="ask",
+            video_id=video,
+            answer=answer.text,
+            confidence=round(float(answer.confidence), 4) if answer.confidence is not None else None,
+            evidence=evidence,
+            frame_paths=frame_paths,
+            data={
+                "cached": answer.cached,
+                "verified": answer.verified,
+                "escalations_used": answer.escalations_used,
+                "budget_stopped": answer.budget_stopped,
+                "deadline_stopped": answer.deadline_stopped,
+                "tokens_saved_estimate": answer.tokens_saved_estimate,
+            },
+        )
+        emit_json(env)
+        return
+
     print(answer.text)
     flags = [f"confidence: {answer.confidence:.2f}"]
     if answer.cached:
@@ -299,6 +426,133 @@ def ask(
         for path in answer.frames[:max_frames]:
             print(f"- `{path}`")
     print(f"~{answer.tokens_saved_estimate} tokens saved vs raw-frame injection")
+
+
+@app.command("moment")
+def moment_cmd(
+    video: str = typer.Argument(..., help="video_id or original source URL/path."),
+    timestamp: str = typer.Argument(..., help="Timestamp (SS, MM:SS, or HH:MM:SS)."),
+    window: float = typer.Option(10.0, "--window", help="Time window in seconds around the moment."),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
+    """Dense frames + transcript + OCR around one moment."""
+    from watch_skill.errors import WatchSkillError
+    from watch_skill.index import get_moment as moment
+    from watch_skill.perceive.budget import format_time, parse_time
+    from watch_skill.surfaces.cli.envelope import (
+        OutputEnvelope,
+        clean_frame_paths,
+        emit_json,
+        emit_json_error,
+    )
+
+    if window < 0.5 or window > 120.0:
+        if json_output:
+            emit_json_error(
+                command="moment",
+                code="index.invalid_window",
+                message="Window must be between 0.5 and 120.0 seconds.",
+                fix="pass a window between 0.5 and 120.0 seconds (e.g. --window 10.0)",
+                video_id=video,
+            )
+            raise typer.Exit(code=1)
+        _console.print("[red]error:[/red] Window must be between 0.5 and 120.0 seconds.")
+        raise typer.Exit(code=1)
+
+    try:
+        ts = parse_time(timestamp)
+    except ValueError:
+        ts = None
+
+    if ts is None or ts < 0:
+        if json_output:
+            emit_json_error(
+                command="moment",
+                code="index.invalid_timestamp",
+                message=f"Cannot parse timestamp: '{timestamp}'",
+                fix="pass timestamp as SS, MM:SS, or HH:MM:SS (e.g. 02:30)",
+                video_id=video,
+            )
+            raise typer.Exit(code=1)
+        _console.print(f"[red]error:[/red] invalid timestamp: '{timestamp}'")
+        raise typer.Exit(code=1)
+
+    try:
+        ctx = moment(video, ts, window=window)
+    except WatchSkillError as exc:
+        if json_output:
+            emit_json_error(
+                command="moment",
+                code=exc.code,
+                message=str(exc),
+                fix=getattr(exc, "fix", None),
+                details=exc.details,
+                video_id=video,
+            )
+            raise typer.Exit(code=1) from None
+        print(json.dumps(exc.to_dict(), indent=2))
+        raise typer.Exit(code=1) from None
+
+    frame_paths = clean_frame_paths([f["frame_path"] for f in ctx.frames if "frame_path" in f])
+
+    if json_output:
+        evidence = []
+        for s in ctx.segments:
+            evidence.append({
+                "type": "transcript",
+                "timestamp": s.get("start"),
+                "end": s.get("end"),
+                "text": s.get("text", ""),
+            })
+        for o in ctx.ocr:
+            evidence.append({
+                "type": "ocr",
+                "timestamp": o.get("timestamp"),
+                "text": o.get("text", ""),
+                "confidence": o.get("confidence"),
+            })
+        for f in ctx.frames:
+            evidence.append({
+                "type": "frame",
+                "timestamp": f.get("timestamp"),
+                "frame_path": f.get("frame_path"),
+            })
+
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="moment",
+            video_id=ctx.video_id,
+            answer=None,
+            confidence=None,
+            evidence=evidence,
+            frame_paths=frame_paths,
+            data={
+                "timestamp": ctx.timestamp,
+                "window": ctx.window,
+                "segments": ctx.segments,
+                "ocr": ctx.ocr,
+                "frames": ctx.frames,
+            },
+        )
+        emit_json(env)
+        return
+
+    print(f"# Moment {format_time(ctx.timestamp)} ±{ctx.window / 2:.0f}s of {ctx.video_id}\n")
+    if ctx.segments:
+        print("Transcript:")
+        for s in ctx.segments:
+            print(f"- [{format_time(s['start'])}] {s['text']}")
+        print()
+    if ctx.ocr:
+        print("On-screen text (OCR):")
+        for o in ctx.ocr:
+            print(f"- [{format_time(o['timestamp'])}] {o['text']}")
+        print()
+    if frame_paths:
+        print("Frames:")
+        for fp in frame_paths:
+            print(f"- `{fp}`")
 
 
 @app.command()
@@ -1100,11 +1354,30 @@ def library_rebuild_notes() -> None:
 
 
 @app.command("list")
-def list_cmd() -> None:
+def list_cmd(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
     """List indexed videos."""
     from watch_skill.index import list_videos
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
 
-    for row in list_videos():
+    rows = list_videos()
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="list",
+            video_id=None,
+            answer=None,
+            confidence=None,
+            evidence=[],
+            frame_paths=[],
+            data={"items": rows},
+        )
+        emit_json(env)
+        return
+
+    for row in rows:
         try:
             length = f"{float(row['duration_seconds']):8.1f}s"
         except (TypeError, ValueError):
@@ -1113,17 +1386,163 @@ def list_cmd() -> None:
 
 
 @app.command()
-def search(query: str = typer.Argument(...)) -> None:
+def search(
+    query: str = typer.Argument(...),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
     """Search across every indexed video."""
     from watch_skill.index import search_videos
     from watch_skill.perceive.budget import format_time
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
 
-    for group in search_videos(query):
+    groups = search_videos(query)
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="search",
+            video_id=None,
+            answer=None,
+            confidence=None,
+            evidence=[],
+            frame_paths=[],
+            data={"query": query, "items": groups},
+        )
+        emit_json(env)
+        return
+
+    for group in groups:
         video = group["video"] or {}
         print(f"\n## {video.get('title') or video.get('source')} ({video.get('id')})")
         for hit in group["hits"]:
             stamp = format_time(hit["timestamp"]) if hit["timestamp"] is not None else "--:--"
             print(f"- [{stamp}] ({hit['kind']}, {hit['score']:.2f}) {hit['text']}")
+
+
+config_app = typer.Typer(help="Manage Watch Skill settings and API keys.")
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("set")
+def config_set_cmd(
+    key: str = typer.Argument(..., help="Config key name (e.g. GROQ_API_KEY)."),
+    value: str = typer.Argument(..., help="Config value."),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
+    """Set a configuration key in the global user environment (~/.watch-skill/.env)."""
+    from watch_skill.config import set_config_value
+    from watch_skill.errors import WatchSkillError
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json, emit_json_error
+
+    try:
+        norm_key, override_src = set_config_value(key, value)
+    except WatchSkillError as exc:
+        if json_output:
+            emit_json_error(
+                command="config.set",
+                code=exc.code,
+                message=str(exc),
+                fix=getattr(exc, "fix", None),
+            )
+            raise typer.Exit(code=1) from None
+        _console.print(f"[red]error:[/red] {_plain(exc)}")
+        raise typer.Exit(code=1) from None
+
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="config.set",
+            data={
+                "key": norm_key,
+                "saved_to": "global",
+                "overridden_by": override_src,
+            },
+        )
+        emit_json(env)
+        if override_src:
+            _console.print(
+                f"[yellow]warning:[/yellow] saved '{norm_key}' to global config, but it is currently overridden by {override_src}"
+            )
+        return
+
+    _console.print(f"[green]Saved[/green] {norm_key} to ~/.watch-skill/.env")
+    if override_src:
+        _console.print(
+            f"[yellow]warning:[/yellow] '{norm_key}' is currently overridden by {override_src}"
+        )
+
+
+@config_app.command("get")
+def config_get_cmd(
+    key: str = typer.Argument(..., help="Config key name (e.g. GROQ_API_KEY)."),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
+    """Get the effective value of a configuration key."""
+    from watch_skill.config import get_config_value
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
+
+    val = get_config_value(key)
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="config.get",
+            data={"key": key, "value": val},
+        )
+        emit_json(env)
+        return
+
+    if val is None:
+        print("")
+    else:
+        print(val)
+
+
+@config_app.command("list")
+def config_list_cmd(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
+    """List effective configuration values (secrets are redacted)."""
+    from watch_skill.config import list_config_values
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
+
+    items = list_config_values(redact=True)
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="config.list",
+            data={"items": items},
+        )
+        emit_json(env)
+        return
+
+    for item in items:
+        src = f"[{item['source']}]"
+        print(f"{item['key']:32} = {item['value'] or '(empty)':28} {src}")
+
+
+@config_app.command("path")
+def config_path_cmd(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
+) -> None:
+    """Show the path to the global user configuration file."""
+    from watch_skill.config import global_env_file
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
+
+    path = global_env_file()
+    if json_output:
+        env = OutputEnvelope(
+            schema_version="1.0",
+            ok=True,
+            command="config.path",
+            data={"path": str(path.resolve())},
+        )
+        emit_json(env)
+        return
+
+    print(str(path.resolve()))
 
 
 loop_app = typer.Typer(help="THE LOOP: capture -> critique -> fix -> re-capture.")
@@ -1788,4 +2207,7 @@ def _main(
 
 
 if __name__ == "__main__":
+    import multiprocessing
+
+    multiprocessing.freeze_support()
     sys.exit(app())

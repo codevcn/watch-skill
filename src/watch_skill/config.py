@@ -7,11 +7,34 @@ All environment variables use the ``WATCHSKILL_`` prefix, e.g.
 """
 from __future__ import annotations
 
+import os
+import re
+import sys
+import tempfile
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def global_env_file() -> Path:
+    """Return the global user environment file (~/.watch-skill/.env or override)."""
+    override = os.environ.get("WATCHSKILL_GLOBAL_ENV_FILE")
+    if override:
+        return Path(override)
+    return Path.home() / ".watch-skill" / ".env"
+
+
+def _default_env_files() -> tuple[str, ...]:
+    """Default env files in precedence order: (global, cwd).
+
+    pydantic-settings loads the files in sequence where the last file in the tuple
+    overrides the earlier ones, establishing:
+    defaults < global ~/.watch-skill/.env < CWD/.env < process environment.
+    """
+    return (str(global_env_file()), ".env")
 
 
 class Settings(BaseSettings):
@@ -19,10 +42,15 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="WATCHSKILL_",
-        env_file=".env",
+        env_file=_default_env_files(),
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    def __init__(self, **values: Any) -> None:
+        if "_env_file" not in values:
+            values["_env_file"] = _default_env_files()
+        super().__init__(**values)
 
     # --- storage ---------------------------------------------------------
     data_dir: Path = Field(
@@ -391,3 +419,239 @@ def reset_settings() -> None:
     from watch_skill.policy import reset_policy  # noqa: PLC0415
 
     reset_policy()
+
+
+def redact_secret_value(key: str, val: str) -> str:
+    """Mask secret strings (e.g. gsk_****abcd) to avoid accidental leakage."""
+    upper = key.upper()
+    if any(secret_term in upper for secret_term in ("KEY", "TOKEN", "SECRET", "PASSWORD")):
+        if not val:
+            return ""
+        if len(val) > 8:
+            return f"{val[:4]}****{val[-4:]}"
+        return "****"
+    return val
+
+
+def set_config_value(
+    key: str,
+    value: str,
+    target_file: Path | None = None,
+) -> tuple[str, str | None]:
+    """Set a configuration key/value in the global environment file.
+
+    Returns (normalized_key, override_source | None).
+    override_source is populated if process environment or CWD/.env currently shadows this key.
+    """
+    raw_key = key.strip()
+    if not re.match(r"^[A-Za-z0-9_]+$", raw_key):
+        from watch_skill.errors import ConfigError
+
+        raise ConfigError(
+            f"invalid config key: '{key}'",
+            code="config.invalid_key",
+            fix="keys must contain only letters, numbers, and underscores (e.g. GROQ_API_KEY)",
+        )
+
+    norm_key = raw_key.upper()
+    if not norm_key.startswith("WATCHSKILL_"):
+        norm_key = f"WATCHSKILL_{norm_key}"
+
+    dest = target_file if target_file is not None else global_env_file()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    clean_val = value.replace("\r", "")
+    if any(c in clean_val for c in (' ', '\t', '\n', '"', "'", '=', '#')):
+        escaped = clean_val.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+        line_to_write = f'{norm_key}="{escaped}"\n'
+    else:
+        line_to_write = f'{norm_key}={clean_val}\n'
+
+    lines: list[str] = []
+    if dest.is_file():
+        try:
+            lines = dest.read_text(encoding="utf-8").splitlines(keepends=True)
+        except OSError:
+            lines = []
+
+    replaced = False
+    key_pattern = re.compile(rf"^\s*(?:export\s+)?{re.escape(norm_key)}\s*=", re.IGNORECASE)
+    new_lines: list[str] = []
+    for line in lines:
+        if key_pattern.match(line):
+            new_lines.append(line_to_write)
+            replaced = True
+        else:
+            new_lines.append(line)
+
+    if not replaced:
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] += "\n"
+        new_lines.append(line_to_write)
+
+    # Atomic write
+    tmp_fd, tmp_path_str = tempfile.mkstemp(dir=dest.parent, prefix=".env_tmp_")
+    tmp_path = Path(tmp_path_str)
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
+            fh.writelines(new_lines)
+        if sys.platform != "win32":
+            try:
+                os.chmod(tmp_path, 0o600)
+            except OSError:
+                pass
+        tmp_path.replace(dest)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+    reset_settings()
+
+    # Precedence check: is it shadowed?
+    short_key = norm_key.removeprefix("WATCHSKILL_")
+    if norm_key in os.environ:
+        return norm_key, f"process environment (${norm_key})"
+    if short_key in os.environ:
+        return norm_key, f"process environment (${short_key})"
+
+    cwd_env = Path.cwd() / ".env"
+    if cwd_env.is_file() and cwd_env.resolve() != dest.resolve():
+        try:
+            cwd_text = cwd_env.read_text(encoding="utf-8")
+            if re.search(
+                rf"^\s*(?:export\s+)?(?:WATCHSKILL_)?{re.escape(short_key)}\s*=",
+                cwd_text,
+                re.MULTILINE | re.IGNORECASE,
+            ):
+                return norm_key, "CWD/.env"
+        except OSError:
+            pass
+
+    return norm_key, None
+
+
+def _read_env_file_kv(path: Path) -> dict[str, str]:
+    """Parse key-value pairs from an env file."""
+    res: dict[str, str] = {}
+    if not path.is_file():
+        return res
+    try:
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            m = re.match(r"^(?:export\s+)?([A-Za-z0-9_]+)\s*=\s*(.*)$", line)
+            if m:
+                k = m.group(1).upper()
+                v = m.group(2).strip()
+                if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+                    v = v[1:-1]
+                res[k] = v
+    except OSError:
+        pass
+    return res
+
+
+def get_config_value(key: str) -> str | None:
+    """Return the effective merged value for a configuration key.
+
+    Precedence:
+    1. Process environment (WATCHSKILL_<KEY> or <KEY>)
+    2. CWD/.env
+    3. Global env file (~/.watch-skill/.env)
+    4. Settings model defaults
+    """
+    clean_key = key.strip().upper()
+    short_key = clean_key.removeprefix("WATCHSKILL_")
+    long_key = f"WATCHSKILL_{short_key}"
+
+    # 1. Process environment
+    if long_key in os.environ:
+        return os.environ[long_key]
+    if short_key in os.environ:
+        return os.environ[short_key]
+
+    # 2. CWD/.env
+    cwd_kv = _read_env_file_kv(Path.cwd() / ".env")
+    if long_key in cwd_kv:
+        return cwd_kv[long_key]
+    if short_key in cwd_kv:
+        return cwd_kv[short_key]
+
+    # 3. Global env file
+    global_kv = _read_env_file_kv(global_env_file())
+    if long_key in global_kv:
+        return global_kv[long_key]
+    if short_key in global_kv:
+        return global_kv[short_key]
+
+    # 4. Settings default
+    settings = get_settings()
+    field_name = short_key.lower()
+    if hasattr(settings, field_name):
+        val = getattr(settings, field_name)
+        if isinstance(val, SecretStr):
+            return val.get_secret_value()
+        if val is None:
+            return None
+        return str(val)
+
+    return None
+
+
+def list_config_values(redact: bool = True) -> list[dict[str, Any]]:
+    """List effective config items with key, value, and source (env | cwd | global | default)."""
+    settings = get_settings()
+    fields = Settings.model_fields
+
+    cwd_keys: set[str] = set()
+    cwd_env = Path.cwd() / ".env"
+    if cwd_env.is_file():
+        try:
+            for line in cwd_env.read_text(encoding="utf-8").splitlines():
+                m = re.match(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=", line)
+                if m:
+                    cwd_keys.add(m.group(1).upper())
+        except OSError:
+            pass
+
+    global_keys: set[str] = set()
+    g_env = global_env_file()
+    if g_env.is_file():
+        try:
+            for line in g_env.read_text(encoding="utf-8").splitlines():
+                m = re.match(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=", line)
+                if m:
+                    global_keys.add(m.group(1).upper())
+        except OSError:
+            pass
+
+    items: list[dict[str, Any]] = []
+    for field_name, _field_info in fields.items():
+        env_key = f"WATCHSKILL_{field_name.upper()}"
+        short_key = field_name.upper()
+
+        val = getattr(settings, field_name)
+        raw_val = (
+            val.get_secret_value()
+            if isinstance(val, SecretStr)
+            else ("" if val is None else str(val))
+        )
+
+        if env_key in os.environ or short_key in os.environ:
+            source = "env"
+        elif env_key in cwd_keys or short_key in cwd_keys:
+            source = "cwd"
+        elif env_key in global_keys or short_key in global_keys:
+            source = "global"
+        else:
+            source = "default"
+
+        display_val = redact_secret_value(env_key, raw_val) if redact else raw_val
+        items.append({
+            "key": env_key,
+            "field": field_name,
+            "value": display_val,
+            "source": source,
+        })
+    return sorted(items, key=lambda x: x["key"])
