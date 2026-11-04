@@ -458,13 +458,40 @@ class TestConcurrency:
 # -- the real process --------------------------------------------------------
 
 
+class _DrainedStderr:
+    """Continuous background reader to prevent Windows OS pipe buffer deadlock."""
+
+    def __init__(self, raw: Any) -> None:
+        self._buf = bytearray()
+        self._raw = raw
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            while True:
+                chunk = self._raw.read(4096)
+                if not chunk:
+                    break
+                self._buf.extend(chunk)
+        except Exception:
+            pass
+
+    def read(self, _size: int = -1) -> bytes:
+        self._thread.join(timeout=5)
+        return bytes(self._buf)
+
+
 def _spawn_bridge() -> subprocess.Popen[bytes]:
-    return subprocess.Popen(
-        [sys.executable, "-m", "watch_skill.surfaces.cli.main", "bridge"],
+    p = subprocess.Popen(
+        [sys.executable, "-u", "-m", "watch_skill.surfaces.cli.main", "bridge"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    if p.stderr is not None:
+        p.stderr = _DrainedStderr(p.stderr)  # type: ignore[assignment]
+    return p
 
 
 def _exchange(process: subprocess.Popen[bytes], payload: dict[str, Any]) -> dict[str, Any]:
