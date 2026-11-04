@@ -41,8 +41,9 @@ jobs:
         run: |
           $ver = ./dist/watch-skill-windows-x86_64.exe --version
           Write-Host "Built version: $ver"
-          if ($ver -ne "1.5.2") {
-            Write-Error "Version mismatch: expected '1.5.2', got '$ver'"
+          $expected = (uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])").Trim()
+          if ($ver -ne $expected) {
+            Write-Error "Version mismatch: expected '$expected', got '$ver'"
             exit 1
           }
           ./dist/watch-skill-windows-x86_64.exe doctor --json | Out-Null
