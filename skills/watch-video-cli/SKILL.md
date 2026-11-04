@@ -108,8 +108,8 @@ Options:
   "command": "watch",
   "video_id": "d76c0fe5f3193eec",
   "frame_paths": [
-    "C:\\Users\\user\\.watch-skill\\cache\\d76c0fe5f3193eec\\f_001.jpg",
-    "C:\\Users\\user\\.watch-skill\\cache\\d76c0fe5f3193eec\\f_002.jpg"
+    "D:\\cache\\.watch-skill\\cache\\d76c0fe5f3193eec\\f_001.jpg",
+    "D:\\cache\\.watch-skill\\cache\\d76c0fe5f3193eec\\f_002.jpg"
   ],
   "data": {
     "duration": 125.4,
