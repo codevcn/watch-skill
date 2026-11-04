@@ -136,6 +136,13 @@ def _try_choco_ffmpeg() -> bool:
     return result.returncode == 0 and shutil.which("ffmpeg") is not None
 
 
+def _try_brew_ffmpeg() -> bool:
+    if shutil.which("brew") is None:
+        return False
+    result = _run(["brew", "install", "ffmpeg"], timeout=600.0)
+    return result.returncode == 0 and shutil.which("ffmpeg") is not None
+
+
 def ffmpeg_version(ffmpeg: str | Path) -> tuple[int, int] | None:
     """The (major, minor) this ffmpeg reports, or None when it does not report one.
 
@@ -181,6 +188,7 @@ def check_ffmpeg(fix: bool = True) -> CheckResult:
             "ffmpeg", "fail", "ffmpeg/ffprobe not found (run doctor with fixes enabled)"
         )
     steps: list[tuple[str, Callable[[], bool]]] = [
+        ("brew", _try_brew_ffmpeg),
         ("winget", _try_winget_ffmpeg),
         ("choco", _try_choco_ffmpeg),
     ]

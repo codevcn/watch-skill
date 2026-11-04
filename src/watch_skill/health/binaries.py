@@ -11,6 +11,7 @@ import os
 import platform
 import shutil
 import stat
+import subprocess
 import sys
 import tarfile
 import zipfile
@@ -164,12 +165,13 @@ def _bootstrap_ffmpeg_linux(bin_dir: Path) -> tuple[Path, Path]:
 
 
 def _bootstrap_ffmpeg_macos(bin_dir: Path) -> tuple[Path, Path]:
-    """Fetch ffmpeg and ffprobe from evermeet.cx (one zip each)."""
+    """Fetch ffmpeg and ffprobe for macOS (with fallback to brew)."""
     paths: dict[str, Path] = {}
+    download_failed = False
     for tool in ("ffmpeg", "ffprobe"):
         zip_path = bin_dir / f"{tool}.zip"
-        _download_file(FFMPEG_MACOS_ZIP_URL.format(tool=tool), zip_path)
         try:
+            _download_file(FFMPEG_MACOS_ZIP_URL.format(tool=tool), zip_path)
             with zipfile.ZipFile(zip_path) as zf:
                 member = next(
                     (m for m in zf.namelist() if m.rsplit("/", 1)[-1] == tool), None
@@ -185,9 +187,31 @@ def _bootstrap_ffmpeg_macos(bin_dir: Path) -> tuple[Path, Path]:
                     shutil.copyfileobj(src, dst)
                 target.chmod(0o755)
                 paths[tool] = target
+        except Exception as exc:
+            if isinstance(exc, DependencyError) and "did not contain" in str(exc):
+                raise
+            download_failed = True
+            break
         finally:
             zip_path.unlink(missing_ok=True)
-    return paths["ffmpeg"], paths["ffprobe"]
+
+    if not download_failed and "ffmpeg" in paths and "ffprobe" in paths:
+        return paths["ffmpeg"], paths["ffprobe"]
+
+    # Fallback: if brew is installed, try installing or finding via brew
+    if shutil.which("brew") is not None:
+        try:
+            subprocess.run(["brew", "install", "ffmpeg"], capture_output=True, timeout=600.0)
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
+        return Path(shutil.which("ffmpeg")), Path(shutil.which("ffprobe"))  # type: ignore[arg-type]
+
+    raise DependencyError(
+        "macOS ffmpeg bootstrap failed (evermeet.cx is unreachable and brew install failed)",
+        code="health.bootstrap_failed",
+        fix="install ffmpeg with Homebrew: brew install ffmpeg",
+    )
 
 
 def bootstrap_ffmpeg_portable() -> tuple[Path, Path]:

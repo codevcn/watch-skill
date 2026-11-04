@@ -555,46 +555,35 @@ def _read_env_file_kv(path: Path) -> dict[str, str]:
 def get_config_value(key: str) -> str | None:
     """Return the effective merged value for a configuration key.
 
-    Precedence:
-    1. Process environment (WATCHSKILL_<KEY> or <KEY>)
-    2. CWD/.env
-    3. Global env file (~/.watch-skill/.env)
-    4. Settings model defaults
+    Settings is the single runtime source of truth. Canonical prefix is WATCHSKILL_.
     """
     clean_key = key.strip().upper()
     short_key = clean_key.removeprefix("WATCHSKILL_")
-    long_key = f"WATCHSKILL_{short_key}"
+    canonical_key = f"WATCHSKILL_{short_key}"
 
-    # 1. Process environment
-    if long_key in os.environ:
-        return os.environ[long_key]
-    if short_key in os.environ:
-        return os.environ[short_key]
-
-    # 2. CWD/.env
-    cwd_kv = _read_env_file_kv(Path.cwd() / ".env")
-    if long_key in cwd_kv:
-        return cwd_kv[long_key]
-    if short_key in cwd_kv:
-        return cwd_kv[short_key]
-
-    # 3. Global env file
-    global_kv = _read_env_file_kv(global_env_file())
-    if long_key in global_kv:
-        return global_kv[long_key]
-    if short_key in global_kv:
-        return global_kv[short_key]
-
-    # 4. Settings default
+    # 1. Check Settings model fields (the engine's runtime source of truth)
     settings = get_settings()
     field_name = short_key.lower()
     if hasattr(settings, field_name):
         val = getattr(settings, field_name)
         if isinstance(val, SecretStr):
             return val.get_secret_value()
-        if val is None:
-            return None
-        return str(val)
+        if val is not None:
+            return str(val)
+
+    # 2. Check process environment for canonical key
+    if canonical_key in os.environ:
+        return os.environ[canonical_key]
+
+    # 3. Check CWD/.env
+    cwd_kv = _read_env_file_kv(Path.cwd() / ".env")
+    if canonical_key in cwd_kv:
+        return cwd_kv[canonical_key]
+
+    # 4. Check global env file
+    global_kv = _read_env_file_kv(global_env_file())
+    if canonical_key in global_kv:
+        return global_kv[canonical_key]
 
     return None
 
@@ -609,7 +598,7 @@ def list_config_values(redact: bool = True) -> list[dict[str, Any]]:
     if cwd_env.is_file():
         try:
             for line in cwd_env.read_text(encoding="utf-8").splitlines():
-                m = re.match(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=", line)
+                m = re.match(r"^\s*(?:export\s+)?(WATCHSKILL_[A-Za-z0-9_]+)\s*=", line, re.IGNORECASE)
                 if m:
                     cwd_keys.add(m.group(1).upper())
         except OSError:
@@ -620,7 +609,7 @@ def list_config_values(redact: bool = True) -> list[dict[str, Any]]:
     if g_env.is_file():
         try:
             for line in g_env.read_text(encoding="utf-8").splitlines():
-                m = re.match(r"^\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=", line)
+                m = re.match(r"^\s*(?:export\s+)?(WATCHSKILL_[A-Za-z0-9_]+)\s*=", line, re.IGNORECASE)
                 if m:
                     global_keys.add(m.group(1).upper())
         except OSError:
@@ -629,7 +618,6 @@ def list_config_values(redact: bool = True) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for field_name, _field_info in fields.items():
         env_key = f"WATCHSKILL_{field_name.upper()}"
-        short_key = field_name.upper()
 
         val = getattr(settings, field_name)
         raw_val = (
@@ -638,11 +626,11 @@ def list_config_values(redact: bool = True) -> list[dict[str, Any]]:
             else ("" if val is None else str(val))
         )
 
-        if env_key in os.environ or short_key in os.environ:
+        if env_key in os.environ:
             source = "env"
-        elif env_key in cwd_keys or short_key in cwd_keys:
+        elif env_key in cwd_keys:
             source = "cwd"
-        elif env_key in global_keys or short_key in global_keys:
+        elif env_key in global_keys:
             source = "global"
         else:
             source = "default"

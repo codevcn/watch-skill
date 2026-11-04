@@ -1391,11 +1391,26 @@ def search(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON for AI agents."),
 ) -> None:
     """Search across every indexed video."""
+    from watch_skill.errors import WatchSkillError
     from watch_skill.index import search_videos
     from watch_skill.perceive.budget import format_time
-    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json
+    from watch_skill.surfaces.cli.envelope import OutputEnvelope, emit_json, emit_json_error
 
-    groups = search_videos(query)
+    try:
+        groups = search_videos(query)
+    except WatchSkillError as exc:
+        if json_output:
+            emit_json_error(
+                command="search",
+                code=exc.code,
+                message=str(exc),
+                fix=getattr(exc, "fix", None),
+                details=exc.details,
+            )
+            raise typer.Exit(code=1) from None
+        print(json.dumps(exc.to_dict(), indent=2))
+        raise typer.Exit(code=1) from None
+
     if json_output:
         env = OutputEnvelope(
             schema_version="1.0",

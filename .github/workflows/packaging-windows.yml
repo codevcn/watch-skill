@@ -1,0 +1,72 @@
+name: Windows Packaging & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package-windows:
+    name: Package and Verify Windows Executable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies with packaging extra
+        run: uv sync --extra cli --extra test
+
+      - name: Run unit & contract tests
+        run: uv run pytest tests/surfaces/test_cli_config.py tests/surfaces/test_cli_moment.py tests/surfaces/test_cli_json_contract.py
+
+      - name: Install PyInstaller
+        run: uv pip install pyinstaller
+
+      - name: Build Standalone Executable
+        run: uv run pyinstaller --clean packaging/watch-skill.spec
+
+      - name: Smoke test built executable
+        shell: pwsh
+        run: |
+          $ver = ./dist/watch-skill-windows-x86_64.exe --version
+          Write-Host "Built version: $ver"
+          if ($ver -notmatch "^1\.5\.") {
+            Write-Error "Version mismatch: expected 1.5.x, got $ver"
+            exit 1
+          }
+          ./dist/watch-skill-windows-x86_64.exe config list --json | Out-Null
+          ./dist/watch-skill-windows-x86_64.exe --help | Out-Null
+
+      - name: Generate Checksums
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 ./dist/watch-skill-windows-x86_64.exe).Hash.ToLower()
+          "$hash  watch-skill-windows-x86_64.exe" | Set-Content ./dist/SHA256SUMS.txt
+          Get-Content ./dist/SHA256SUMS.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: watch-skill-windows-x86_64
+          path: |
+            dist/watch-skill-windows-x86_64.exe
+            dist/SHA256SUMS.txt
+
+      - name: Release to GitHub (on tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release upload ${{ github.ref_name }} ./dist/watch-skill-windows-x86_64.exe ./dist/SHA256SUMS.txt --clobber

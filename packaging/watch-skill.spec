@@ -1,6 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_all, copy_metadata
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+    copy_metadata,
+)
 
 block_cipher = None
 
@@ -12,12 +17,22 @@ datas = [
     (str(SRC_DIR / "watch_skill" / "vision" / "prices.json"), "watch_skill/vision"),
     (str(SRC_DIR / "watch_skill" / "surfaces" / "mcp" / "static" / "workspace.html"), "watch_skill/surfaces/mcp/static"),
 ]
+
+# Targeted data files
 try:
     datas += copy_metadata("watch-skill")
 except Exception:
     pass
 
+datas += collect_data_files("rapidocr")
+datas += collect_data_files("fastembed")
+datas += collect_data_files("onnxruntime")
+
+# Targeted dynamic libraries
 binaries = []
+binaries += collect_dynamic_libs("onnxruntime")
+
+# Targeted hidden imports (explicitly excluding tensorrt and unused frameworks)
 hiddenimports = [
     "watch_skill",
     "watch_skill.surfaces.cli.envelope",
@@ -39,16 +54,17 @@ hiddenimports = [
     "sqlite3",
     "PIL",
     "cv2",
+    "pydantic",
+    "pydantic_settings",
+    "rich",
+    "typer",
 ]
 
-for pkg in ["rapidocr", "fastembed", "onnxruntime", "scenedetect", "typer", "rich", "pydantic", "pydantic_settings"]:
-    try:
-        d, b, h = collect_all(pkg)
-        datas += d
-        binaries += b
-        hiddenimports += h
-    except Exception as e:
-        print(f"Warning collecting {pkg}: {e}")
+# Add targeted submodules
+hiddenimports += [m for m in collect_submodules("rapidocr") if "tensorrt" not in m]
+hiddenimports += collect_submodules("fastembed")
+hiddenimports += collect_submodules("scenedetect")
+hiddenimports += ["onnxruntime", "onnxruntime.capi._pybind_state"]
 
 a = Analysis(
     [ENTRY_POINT],
@@ -59,7 +75,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["tkinter", "matplotlib", "tensorrt"],
+    excludes=["tkinter", "matplotlib", "tensorrt", "torch", "torchvision"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

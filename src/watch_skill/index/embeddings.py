@@ -26,6 +26,7 @@ def _get_model(name: str):
         import warnings  # noqa: PLC0415
 
         from fastembed import TextEmbedding  # noqa: PLC0415
+
         from watch_skill.config import get_settings  # noqa: PLC0415
 
         cache_dir = str(get_settings().data_dir / "models" / "fastembed")
