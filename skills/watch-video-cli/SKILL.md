@@ -1,6 +1,6 @@
 ---
 name: watch-video-cli
-version: "1.5.0"
+version: "1.5.2"
 description: Complete guide for AI agents (Antigravity, Codex, Claude Code) to interact with watch-skill CLI executable. Covers automatic ffmpeg verification/installation, structured JSON input/output invocation (--json), frame-path visual reasoning, dense temporal inspection (moment), and secret/configuration management.
 license: MIT
 user-invocable: true
@@ -75,8 +75,8 @@ watch-skill config path --json
 ```
 
 **Precedence Order**:
-1. Process environment variables (`WATCHSKILL_*` or `*`)
-2. Current working directory `.env`
+1. Process environment variables (`WATCHSKILL_*`)
+2. Current working directory `.env` (`WATCHSKILL_*`)
 3. Global user configuration (`~/.watch-skill/.env`)
 4. Built-in defaults
 

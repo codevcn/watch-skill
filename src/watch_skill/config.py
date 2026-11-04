@@ -511,15 +511,13 @@ def set_config_value(
     short_key = norm_key.removeprefix("WATCHSKILL_")
     if norm_key in os.environ:
         return norm_key, f"process environment (${norm_key})"
-    if short_key in os.environ:
-        return norm_key, f"process environment (${short_key})"
 
     cwd_env = Path.cwd() / ".env"
     if cwd_env.is_file() and cwd_env.resolve() != dest.resolve():
         try:
             cwd_text = cwd_env.read_text(encoding="utf-8")
             if re.search(
-                rf"^\s*(?:export\s+)?(?:WATCHSKILL_)?{re.escape(short_key)}\s*=",
+                rf"^\s*(?:export\s+)?WATCHSKILL_{re.escape(short_key)}\s*=",
                 cwd_text,
                 re.MULTILINE | re.IGNORECASE,
             ):

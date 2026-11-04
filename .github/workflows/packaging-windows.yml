@@ -24,11 +24,11 @@ jobs:
       - name: Set up Python
         run: uv python install 3.11
 
-      - name: Install dependencies with packaging extra
-        run: uv sync --extra cli --extra test
+      - name: Install dependencies with packaging extra and dev group
+        run: uv sync --extra cli --group dev
 
-      - name: Run unit & contract tests
-        run: uv run pytest tests/surfaces/test_cli_config.py tests/surfaces/test_cli_moment.py tests/surfaces/test_cli_json_contract.py
+      - name: Run unit, bootstrap, and contract tests
+        run: uv run pytest tests/surfaces/test_cli_config.py tests/surfaces/test_cli_moment.py tests/surfaces/test_cli_json_contract.py tests/health/test_ffmpeg_bootstrap.py
 
       - name: Install PyInstaller
         run: uv pip install pyinstaller
@@ -41,10 +41,11 @@ jobs:
         run: |
           $ver = ./dist/watch-skill-windows-x86_64.exe --version
           Write-Host "Built version: $ver"
-          if ($ver -notmatch "^1\.5\.") {
-            Write-Error "Version mismatch: expected 1.5.x, got $ver"
+          if ($ver -ne "1.5.2") {
+            Write-Error "Version mismatch: expected '1.5.2', got '$ver'"
             exit 1
           }
+          ./dist/watch-skill-windows-x86_64.exe doctor --json | Out-Null
           ./dist/watch-skill-windows-x86_64.exe config list --json | Out-Null
           ./dist/watch-skill-windows-x86_64.exe --help | Out-Null
 

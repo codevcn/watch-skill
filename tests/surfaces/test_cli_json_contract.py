@@ -42,6 +42,18 @@ class TestListJsonContract:
             assert len(payload["data"]["items"]) == 1
             assert payload["data"]["items"][0]["id"] == "test_vid_1"
 
+    def test_list_json_failure(self) -> None:
+        with patch(
+            "watch_skill.index.list_videos",
+            side_effect=IndexError_("Database locked", code="index.locked", fix="Retry after process exits."),
+        ):
+            res = runner.invoke(app, ["list", "--json"])
+            assert res.exit_code != 0
+            payload = assert_pure_json_envelope(res.stdout, "list")
+            assert payload["ok"] is False
+            assert payload["error"]["code"] == "index.locked"
+            assert payload["error"]["fix"] == "Retry after process exits."
+
 
 class TestSearchJsonContract:
     def test_search_json_success(self) -> None:
@@ -74,10 +86,10 @@ class TestSearchJsonContract:
         ):
             res = runner.invoke(app, ["search", "query", "--json"])
             assert res.exit_code != 0
-            # For search errors without json flag in main.py, let's verify error handling
-            # In main.py, search error prints json if WatchSkillError is raised
-            payload = json.loads(res.stdout)
-            assert "error" in payload or "code" in payload
+            payload = assert_pure_json_envelope(res.stdout, "search")
+            assert payload["ok"] is False
+            assert payload["error"]["code"] == "index.corrupt"
+            assert payload["error"]["fix"] == "Re-index video."
 
 
 class TestAskJsonContract:
@@ -168,3 +180,20 @@ class TestWatchJsonContract:
             assert payload["ok"] is False
             assert payload["error"]["code"] == "acquire.failed"
             assert payload["error"]["fix"] == "Check video URL."
+
+
+class TestMomentJsonContract:
+    def test_moment_json_invalid_window(self) -> None:
+        res = runner.invoke(app, ["moment", "v123", "10.0", "--window", "0.1", "--json"])
+        assert res.exit_code != 0
+        payload = assert_pure_json_envelope(res.stdout, "moment")
+        assert payload["ok"] is False
+        assert payload["error"]["code"] == "index.invalid_window"
+        assert "0.5 and 120.0" in payload["error"]["message"]
+
+    def test_moment_json_invalid_timestamp(self) -> None:
+        res = runner.invoke(app, ["moment", "v123", "bad:ts:99", "--json"])
+        assert res.exit_code != 0
+        payload = assert_pure_json_envelope(res.stdout, "moment")
+        assert payload["ok"] is False
+        assert payload["error"]["code"] == "index.invalid_timestamp"
