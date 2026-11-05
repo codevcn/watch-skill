@@ -140,7 +140,7 @@ jobs:
             dist/SHA256SUMS.txt
 
       - name: Release to GitHub (on tags)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/core-v')
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
