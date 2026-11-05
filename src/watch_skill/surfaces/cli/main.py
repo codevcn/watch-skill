@@ -2234,6 +2234,12 @@ def _main(
     ),
 ) -> None:
     """Give any agent a video input: watch, index, ask, and iterate."""
+    try:
+        from watch_skill.update_check import check_for_updates
+
+        check_for_updates()
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
