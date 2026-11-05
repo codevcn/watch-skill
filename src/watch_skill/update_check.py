@@ -8,6 +8,8 @@ Guards:
 - WATCHSKILL_NO_UPDATE_CHECK=1 disables all update checks.
 - WATCHSKILL_OFFLINE=1 or settings.offline disables all outbound calls.
 - Timeout is strictly <= 2.5s.
+- Cross-process file locking prevents request storms on concurrent invocations.
+- Failure backoff updates checked_at to avoid hammering GitHub on rate limit/timeout.
 - All network and parsing errors are silently caught.
 """
 from __future__ import annotations
@@ -16,6 +18,7 @@ import json
 import os
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
@@ -24,8 +27,21 @@ from typing import Any
 
 DEFAULT_REPO = "codevcn/watch-skill"
 CACHE_TTL_SECONDS = 86400.0  # 24 hours
+LOCK_STALE_SECONDS = 60.0  # 60 seconds
 REQUEST_TIMEOUT_SECONDS = 2.5
 SCHEMA_VERSION = 1
+
+
+def extract_version_from_tag(tag: str) -> str:
+    """Extract clean semver string from tags like core-v1.5.5 or v1.5.5."""
+    clean = tag.strip()
+    if clean.startswith("core-v"):
+        clean = clean[len("core-v"):]
+    elif clean.startswith("deepwatch-v"):
+        clean = clean[len("deepwatch-v"):]
+    elif clean.startswith("v"):
+        clean = clean[1:]
+    return clean.strip()
 
 
 def _parse_version(v_str: str) -> tuple[int, ...]:
@@ -36,9 +52,8 @@ def _parse_version(v_str: str) -> tuple[int, ...]:
         v = pkg_parse(v_str)
         return (v.major, v.minor, v.micro)
     except Exception:
-        # Simple integer-parts fallback
         parts = []
-        for segment in v_str.lstrip("v").split("."):
+        for segment in extract_version_from_tag(v_str).split("."):
             num = ""
             for ch in segment:
                 if ch.isdigit():
@@ -93,8 +108,42 @@ def _write_cache(path: Path, data: dict[str, Any]) -> None:
         pass
 
 
+def _acquire_lock(lock_path: Path) -> bool:
+    """Acquire cross-process atomic lock file with stale recovery."""
+    try:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        # Check if lock exists and is stale
+        if lock_path.is_file():
+            try:
+                mtime = lock_path.stat().st_mtime
+                if (time.time() - mtime) > LOCK_STALE_SECONDS:
+                    # Lock is stale from crashed process, safe to unlink
+                    lock_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(fd, "w") as f:
+            f.write(f"{os.getpid()}\n{time.time()}\n")
+        return True
+    except OSError:
+        return False
+
+
+def _release_lock(lock_path: Path) -> None:
+    """Release atomic lock file safely."""
+    try:
+        lock_path.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, existing_cache: dict[str, Any] | None) -> None:
-    """Background worker: fetch release from GitHub API and update cache file."""
+    """Background worker: fetch release from GitHub API, merge state, and update cache."""
+    lock_path = cache_path.with_suffix(".lock")
+    if not _acquire_lock(lock_path):
+        return
+
     try:
         url = f"https://api.github.com/repos/{repo}/releases/latest"
         req = urllib.request.Request(
@@ -115,30 +164,41 @@ def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, exi
                 etag = resp.headers.get("ETag")
                 raw = resp.read().decode("utf-8")
                 payload = json.loads(raw)
-        except urllib.error.HTTPError as http_err:
-            if http_err.code == 304 and existing_cache:
-                # Not Modified - touch checked_at timestamp
-                updated = dict(existing_cache)
-                updated["checked_at"] = now_iso
-                _write_cache(cache_path, updated)
+        except urllib.error.HTTPError:
+            # Re-read cache from disk to preserve any updates made by main thread
+            fresh_cache = _read_cache(cache_path) or existing_cache or {}
+            updated = dict(fresh_cache)
+            updated["schema_version"] = SCHEMA_VERSION
+            updated["checked_at"] = now_iso
+            _write_cache(cache_path, updated)
+            return
+        except Exception:
+            # Failure backoff: update checked_at timestamp so subsequent commands don't storm
+            fresh_cache = _read_cache(cache_path) or existing_cache or {}
+            updated = dict(fresh_cache)
+            updated["schema_version"] = SCHEMA_VERSION
+            updated["checked_at"] = now_iso
+            _write_cache(cache_path, updated)
             return
 
-        tag_name = payload.get("tag_name", "").lstrip("v")
+        raw_tag = payload.get("tag_name", "")
+        clean_version = extract_version_from_tag(raw_tag)
         release_url = payload.get("html_url", f"https://github.com/{repo}/releases/latest")
 
+        # Merge state: read the freshest disk cache to preserve last_notified_version
+        fresh_cache = _read_cache(cache_path) or existing_cache or {}
         cache_data = {
             "schema_version": SCHEMA_VERSION,
             "checked_at": now_iso,
-            "latest_version": tag_name,
+            "latest_version": clean_version,
             "release_url": release_url,
             "etag": etag,
-            "last_notified_at": existing_cache.get("last_notified_at") if existing_cache else None,
-            "last_notified_version": existing_cache.get("last_notified_version") if existing_cache else None,
+            "last_notified_at": fresh_cache.get("last_notified_at"),
+            "last_notified_version": fresh_cache.get("last_notified_version"),
         }
         _write_cache(cache_path, cache_data)
-    except Exception:
-        # Zero crash guarantee
-        pass
+    finally:
+        _release_lock(lock_path)
 
 
 def check_for_updates() -> None:
@@ -146,7 +206,7 @@ def check_for_updates() -> None:
 
     Non-blocking: reads local cache immediately and emits notice to stderr if
     a newer version is known. If the cache is missing or older than 24h,
-    spawns a background worker thread to refresh it silently.
+    spawns a background worker thread with cross-process locking.
     """
     if os.environ.get("WATCHSKILL_NO_UPDATE_CHECK") == "1":
         return
@@ -187,6 +247,7 @@ def check_for_updates() -> None:
                 updated["last_notified_version"] = latest
                 updated["last_notified_at"] = datetime.now(UTC).isoformat()
                 _write_cache(cache_path, updated)
+                cache = updated
 
     # 2. Check if cache is stale or missing
     needs_refresh = False
@@ -206,7 +267,6 @@ def check_for_updates() -> None:
                 needs_refresh = True
 
     if needs_refresh:
-        # Run background thread without blocking main CLI process
         worker = threading.Thread(
             target=_fetch_latest_release,
             args=(repo, current_version, cache_path, cache),

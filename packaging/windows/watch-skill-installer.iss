@@ -1,6 +1,6 @@
 ; Inno Setup script for Watch Skill Windows Installer
 #ifndef MyAppVersion
-#define MyAppVersion "1.5.4"
+#define MyAppVersion "1.5.5"
 #endif
 
 [Setup]
@@ -27,26 +27,29 @@ WizardStyle=modern
 
 [Files]
 Source: "..\..\dist\watch-skill-windows-x86_64.exe"; DestDir: "{app}"; DestName: "watch-skill.exe"; Flags: ignoreversion
-Source: "..\..\skills\watch-video-cli\SKILL.md"; DestDir: "{%USERPROFILE}\.gemini\config\skills\watch-video-cli"; Flags: ignoreversion
-Source: "..\..\skills\watch-video-cli\SKILL.md"; DestDir: "{%USERPROFILE}\.claude\skills\watch-video-cli"; Flags: ignoreversion
+Source: "..\..\skills\watch-video-cli\SKILL.md"; DestName: "watch-video-cli-SKILL.md"; Flags: dontcopy
 
 #include "common.iss"
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  GeminiSkillDir, ClaudeSkillDir: string;
+  TempSkillFile, GeminiSkillDir, ClaudeSkillDir: string;
 begin
   if CurStep = ssPostInstall then
   begin
     // Add application directory to HKCU Path
     AddPathEntry(ExpandConstant('{app}'));
 
-    // Tag managed skills with ownership marker
+    // Extract skill file to temporary directory
+    ExtractTemporaryFile('watch-video-cli-SKILL.md');
+    TempSkillFile := ExpandConstant('{tmp}\watch-video-cli-SKILL.md');
+
+    // Safe deploy to Gemini and Claude skills (respects unmanaged pre-existing skills)
     GeminiSkillDir := ExpandConstant('{%USERPROFILE}\.gemini\config\skills\watch-video-cli');
     ClaudeSkillDir := ExpandConstant('{%USERPROFILE}\.claude\skills\watch-video-cli');
-    DeployManagedSkill(GeminiSkillDir);
-    DeployManagedSkill(ClaudeSkillDir);
+    SafeDeploySkill(TempSkillFile, GeminiSkillDir);
+    SafeDeploySkill(TempSkillFile, ClaudeSkillDir);
 
     // Ensure FFmpeg is present (winget fallback)
     EnsureFFmpeg();
@@ -62,7 +65,7 @@ begin
     // Remove application directory from HKCU Path
     RemovePathEntry(ExpandConstant('{app}'));
 
-    // Remove managed skills cleanly if marker exists
+    // Remove managed skills cleanly only if ownership marker exists
     GeminiSkillDir := ExpandConstant('{%USERPROFILE}\.gemini\config\skills\watch-video-cli');
     ClaudeSkillDir := ExpandConstant('{%USERPROFILE}\.claude\skills\watch-video-cli');
     RemoveManagedSkill(GeminiSkillDir);

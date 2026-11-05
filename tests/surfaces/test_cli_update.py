@@ -11,12 +11,22 @@ import pytest
 
 from watch_skill.update_check import (
     SCHEMA_VERSION,
+    _acquire_lock,
     _fetch_latest_release,
     _read_cache,
+    _release_lock,
     _write_cache,
     check_for_updates,
+    extract_version_from_tag,
     is_newer_version,
 )
+
+
+def test_extract_version_from_tag():
+    assert extract_version_from_tag("core-v1.5.5") == "1.5.5"
+    assert extract_version_from_tag("deepwatch-v0.1.4") == "0.1.4"
+    assert extract_version_from_tag("v1.5.5") == "1.5.5"
+    assert extract_version_from_tag("1.5.5") == "1.5.5"
 
 
 def test_is_newer_version():
@@ -51,6 +61,18 @@ def test_cache_read_write(tmp_path: Path):
     assert read_back is not None
     assert read_back["latest_version"] == "1.6.0"
     assert read_back["etag"] == "12345"
+
+
+def test_cross_process_lock_and_stale_recovery(tmp_path: Path):
+    lock_file = tmp_path / "update-check.lock"
+    assert _acquire_lock(lock_file) is True
+    # Second acquisition fails (concurrent process prevented)
+    assert _acquire_lock(lock_file) is False
+
+    _release_lock(lock_file)
+    assert not lock_file.exists()
+    assert _acquire_lock(lock_file) is True
+    _release_lock(lock_file)
 
 
 def test_check_for_updates_disabled_by_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
@@ -110,43 +132,60 @@ def test_check_for_updates_emits_to_stderr_never_stdout(monkeypatch: pytest.Monk
     assert stderr_buf2.getvalue() == ""
 
 
-def test_fetch_latest_release_handles_errors_gracefully(tmp_path: Path):
+def test_fetch_latest_release_handles_errors_with_backoff(tmp_path: Path):
     cache_file = tmp_path / "update-check.json"
 
-    # Simulated network timeout / failure
+    # Simulated network timeout / failure sets checked_at backoff timestamp
     with patch("urllib.request.urlopen", side_effect=TimeoutError("Connection timed out")):
-        _fetch_latest_release("codevcn/watch-skill", "1.5.3", cache_file, None)
-    # File not created or crashed
-    assert not cache_file.exists()
+        _fetch_latest_release("codevcn/watch-skill", "1.5.4", cache_file, None)
+
+    assert cache_file.exists()
+    cached = _read_cache(cache_file)
+    assert cached is not None
+    assert "checked_at" in cached
 
 
-def test_fetch_latest_release_success(tmp_path: Path):
+def test_fetch_latest_release_success_and_preserves_notification(tmp_path: Path):
     cache_file = tmp_path / "update-check.json"
+    initial_cache = {
+        "schema_version": SCHEMA_VERSION,
+        "checked_at": datetime.now(UTC).isoformat(),
+        "latest_version": "1.5.4",
+        "release_url": "https://github.com/codevcn/watch-skill/releases/latest",
+        "etag": "old-etag",
+        "last_notified_at": "2026-11-05T00:00:00Z",
+        "last_notified_version": "1.5.5",
+    }
+    _write_cache(cache_file, initial_cache)
 
     mock_resp = MagicMock()
     mock_resp.status = 200
-    mock_resp.headers.get.return_value = "W/\"tag-1.6.0\""
+    mock_resp.headers.get.return_value = "W/\"tag-core-v1.5.5\""
     mock_resp.read.return_value = json.dumps({
-        "tag_name": "v1.6.0",
-        "html_url": "https://github.com/codevcn/watch-skill/releases/tag/v1.6.0",
+        "tag_name": "core-v1.5.5",
+        "html_url": "https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.5",
     }).encode("utf-8")
 
     mock_urlopen = MagicMock()
     mock_urlopen.__enter__.return_value = mock_resp
 
     with patch("urllib.request.urlopen", return_value=mock_urlopen):
-        _fetch_latest_release("codevcn/watch-skill", "1.5.3", cache_file, None)
+        _fetch_latest_release("codevcn/watch-skill", "1.5.4", cache_file, initial_cache)
 
     assert cache_file.exists()
     cached = _read_cache(cache_file)
     assert cached is not None
-    assert cached["latest_version"] == "1.6.0"
-    assert cached["etag"] == "W/\"tag-1.6.0\""
+    # Tag core-v1.5.5 normalized to 1.5.5
+    assert cached["latest_version"] == "1.5.5"
+    assert cached["etag"] == "W/\"tag-core-v1.5.5\""
+    # Preserved notification state from disk
+    assert cached["last_notified_version"] == "1.5.5"
 
 
 def test_cli_runner_stdout_json_purity_with_update(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     from typer.testing import CliRunner
 
+    from watch_skill import __version__
     from watch_skill.surfaces.cli.main import app
 
     cache_file = tmp_path / "update-check.json"
@@ -166,9 +205,6 @@ def test_cli_runner_stdout_json_purity_with_update(monkeypatch: pytest.MonkeyPat
 
     runner = CliRunner()
     with patch("watch_skill.update_check.get_update_cache_path", return_value=cache_file):
-        # Even with update available, `version` output on stdout must be clean version string
-        from watch_skill import __version__
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
         assert result.stdout.strip() == __version__
-

@@ -3,7 +3,7 @@ name: Windows Packaging & Release
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["core-v*"]
   workflow_dispatch:
 
 permissions:
@@ -64,6 +64,11 @@ jobs:
       - name: E2E Test Installer and Standalone Uninstaller
         shell: pwsh
         run: |
+          # 0. Setup pre-existing unmanaged skill in Claude to verify ownership invariant
+          $claudeSkillDir = "$env:USERPROFILE\.claude\skills\watch-video-cli"
+          New-Item -ItemType Directory -Force -Path $claudeSkillDir | Out-Null
+          "user sentinel unmanaged skill content" | Set-Content (Join-Path $claudeSkillDir "SKILL.md") -NoNewline
+
           # 1. Test Silent Installation
           Start-Process -FilePath "./dist/watch-skill-installer.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait
 
@@ -78,11 +83,15 @@ jobs:
           $regPath = (Get-ItemProperty -Path 'HKCU:\Environment' -Name Path).Path
           if (-not $regPath.Contains("watch-skill")) { throw "PATH not updated in HKCU Environment" }
 
-          # Verify Skills and Ownership Markers
+          # Verify Gemini skill is managed and deployed
           $geminiMarker = "$env:USERPROFILE\.gemini\config\skills\watch-video-cli\.watch-skill-managed"
-          $claudeMarker = "$env:USERPROFILE\.claude\skills\watch-video-cli\.watch-skill-managed"
           if (-not (Test-Path $geminiMarker)) { throw "Gemini skill marker missing" }
-          if (-not (Test-Path $claudeMarker)) { throw "Claude skill marker missing" }
+
+          # Verify Claude pre-existing unmanaged skill was NOT corrupted or marked
+          $claudeMarker = Join-Path $claudeSkillDir ".watch-skill-managed"
+          if (Test-Path $claudeMarker) { throw "Unmanaged Claude skill should NOT have received marker" }
+          $claudeContent = Get-Content (Join-Path $claudeSkillDir "SKILL.md") -Raw
+          if ($claudeContent -ne "user sentinel unmanaged skill content") { throw "Unmanaged Claude skill content was corrupted" }
 
           # 3. Test Standalone Uninstaller
           Start-Process -FilePath "./dist/watch-skill-uninstaller.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait
@@ -92,7 +101,14 @@ jobs:
           $regPathAfter = (Get-ItemProperty -Path 'HKCU:\Environment' -Name Path).Path
           if ($regPathAfter.Contains("watch-skill")) { throw "PATH still contains watch-skill after uninstall" }
           if (Test-Path "$env:USERPROFILE\.gemini\config\skills\watch-video-cli") { throw "Gemini skill directory still exists after uninstall" }
-          if (Test-Path "$env:USERPROFILE\.claude\skills\watch-video-cli") { throw "Claude skill directory still exists after uninstall" }
+
+          # Verify unmanaged Claude skill was PRESERVED after uninstall
+          if (-not (Test-Path (Join-Path $claudeSkillDir "SKILL.md"))) { throw "Unmanaged Claude skill was incorrectly deleted on uninstall" }
+          $claudeContentAfter = Get-Content (Join-Path $claudeSkillDir "SKILL.md") -Raw
+          if ($claudeContentAfter -ne "user sentinel unmanaged skill content") { throw "Unmanaged Claude skill content altered on uninstall" }
+
+          # Cleanup sentinel
+          Remove-Item -Recurse -Force $claudeSkillDir
 
           # 4. Idempotent test: run standalone uninstaller again
           Start-Process -FilePath "./dist/watch-skill-uninstaller.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait

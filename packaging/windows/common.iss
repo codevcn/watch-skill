@@ -131,13 +131,24 @@ begin
   end;
 end;
 
-procedure DeployManagedSkill(DestDir: string);
+procedure SafeDeploySkill(SourceFile, TargetDir: string);
 var
-  MarkerPath: string;
+  MarkerPath, TargetFile: string;
 begin
   try
-    ForceDirectories(DestDir);
-    MarkerPath := AddBackslash(DestDir) + '.watch-skill-managed';
+    TargetFile := AddBackslash(TargetDir) + 'SKILL.md';
+    MarkerPath := AddBackslash(TargetDir) + '.watch-skill-managed';
+
+    // Invariant: If directory exists and SKILL.md exists WITHOUT marker,
+    // it is a user-owned pre-existing skill -> NEVER overwrite or corrupt!
+    if DirExists(TargetDir) and FileExists(TargetFile) and (not FileExists(MarkerPath)) then
+    begin
+      Exit;
+    end;
+
+    // Clean install or managed upgrade -> deploy file and marker
+    ForceDirectories(TargetDir);
+    CopyFile(SourceFile, TargetFile, False);
     SaveStringToFile(MarkerPath, 'managed-by-watch-skill' + #13#10, False);
   except
   end;
@@ -150,6 +161,8 @@ begin
   try
     MarkerPath := AddBackslash(SkillDir) + '.watch-skill-managed';
     SkillFilePath := AddBackslash(SkillDir) + 'SKILL.md';
+
+    // Invariant: Only delete if the ownership marker is present!
     if FileExists(MarkerPath) then
     begin
       DeleteFile(MarkerPath);

@@ -13,7 +13,7 @@
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "watch-skill",
-      "version": "1.5.4",
+      "version": "1.5.5",
       "runtimeHint": "uvx",
       "runtimeArguments": [
         {
