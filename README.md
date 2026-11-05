@@ -9,13 +9,21 @@
 
 **Watch Skill** turns video, audio and screen activity into searchable,
 timestamped evidence, and answers *did that actually work?* with a
-deterministic contract rather than a model's opinion. Add it to the agent you
-already use over MCP.
+deterministic contract rather than a model's opinion. Available as a zero-dependency
+standalone Windows executable/installer, Python CLI, MCP server, and REST API.
 
 **DeepWatch** is a ready-made agent workspace, built on the official DeepSeek
 Harness with Watch Skill already composed in, where a tool call leaves a receipt
 you can open and a result can be checked by something other than the agent that
 produced it.
+
+<br>
+
+**Distribution & Releases**
+
+[![Release](https://img.shields.io/github/v/release/codevcn/watch-skill?label=release%20(v1.5.6)&color=blue&logo=github)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)
+[![Windows Release](https://img.shields.io/badge/Windows-1--Click%20Installer%20%26%20Standalone-0078D6?logo=windows&logoColor=white)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)
+[![License](https://img.shields.io/github/license/codevcn/watch-skill)](LICENSE)
 
 **Python · PyPI**
 
@@ -27,26 +35,25 @@ produced it.
 
 [![@deepwatch/cli](https://img.shields.io/npm/v/@deepwatch/cli?label=%40deepwatch%2Fcli&logo=npm&logoColor=white)](https://www.npmjs.com/package/@deepwatch/cli)
 [![@deepwatch/dsh-bundle](https://img.shields.io/npm/v/@deepwatch/dsh-bundle?label=%40deepwatch%2Fdsh-bundle&logo=npm&logoColor=white)](https://www.npmjs.com/package/@deepwatch/dsh-bundle)
-[![npm downloads](https://img.shields.io/npm/dm/@deepwatch/cli?label=downloads%2Fmonth&color=cb3837)](https://www.npmjs.com/package/@deepwatch/cli)
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.19-339933?logo=node.js&logoColor=white)](workspace/docs/install-and-upgrade.md)
-[![DeepWatch release](https://img.shields.io/github/v/release/oxbshw/watch-skill?filter=deepwatch-v*&label=release)](https://github.com/oxbshw/watch-skill/releases?q=deepwatch)
 
-**Gates and directories**
+**Quality Gates & Agents**
 
-[![CI](https://github.com/oxbshw/watch-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/oxbshw/watch-skill/actions/workflows/ci.yml)
-[![Workspace](https://github.com/oxbshw/watch-skill/actions/workflows/workspace-ci.yml/badge.svg)](https://github.com/oxbshw/watch-skill/actions/workflows/workspace-ci.yml)
-[![Install](https://github.com/oxbshw/watch-skill/actions/workflows/install.yml/badge.svg)](https://github.com/oxbshw/watch-skill/actions/workflows/install.yml)
+[![CI](https://github.com/codevcn/watch-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/ci.yml)
+[![Workspace](https://github.com/codevcn/watch-skill/actions/workflows/workspace-ci.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/workspace-ci.yml)
+[![Windows Packaging](https://github.com/codevcn/watch-skill/actions/workflows/package-windows.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/package-windows.yml)
 [![Agent Skills](https://www.skills.sh/b/oxbshw/watch-skill)](https://www.skills.sh/oxbshw/watch-skill/watch)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%C2%B7%20HTTP-8A2BE2)](docs/agents/README.md)
-[![License](https://img.shields.io/github/license/oxbshw/watch-skill)](LICENSE)
 
-[Install](#start-here) ·
-[Use it](#the-deepwatch-workspace) ·
+[Quick Install](#start-here) ·
+[Windows 1-Click](#windows-1-click-installer--standalone-binaries) ·
+[Agent Integration](#ai-agent-integration--protocol) ·
+[Auto-Update Check](#smart-background-auto-update-check) ·
+[DeepWatch Workspace](#the-deepwatch-workspace) ·
 [THE LOOP](#the-loop-observe-act-verify) ·
-[Packages](#which-package-is-for-you) ·
 [Architecture](#how-it-fits-together) ·
-[Docs](#documentation) ·
-[Community](#community--ecosystem)
+[CLI Reference](#cli-command-reference) ·
+[Attribution](#acknowledgements--upstream-attribution)
 
 </div>
 
@@ -77,7 +84,7 @@ values, SQL results, HTTP responses and DOM state, and report *passed*,
 *failed*, *unverified* or *inconclusive* — four answers, because three of them
 are not the same as "no".
 
-Any agent can use it: **MCP**, a **CLI**, or a **REST** API.
+Any agent can use it: **MCP**, a **CLI**, a **Windows standalone binary**, or a **REST** API.
 
 </td>
 <td width="50%" valign="top">
@@ -107,65 +114,51 @@ and shows where their verdicts diverged.
 
 ## Start here
 
-Three entry paths. Pick the row that describes you.
+Five entry paths. Pick the row that describes your environment.
 
-| You have | You want | Go to |
+| You have | You want | Recommended path |
 | --- | --- | --- |
-| Windows (Standalone, Zero Python Install) | Download single `.exe` binary | [Standalone Binary Release](#standalone-binary-windows) |
-| An agent already (Claude Code, Cursor, Codex, Antigravity, any MCP/CLI client) | Give it eyes, ears and verification | [Watch Skill](#1-add-watch-skill-to-an-agent-you-already-use) |
-| Nothing yet | The whole workspace, agent included | [DeepWatch](#2-the-whole-workspace) |
-| A DeepSeek Harness you already run | Add Watch to it, keep your setup | [`@deepwatch/dsh-bundle`](#3-into-a-deepseek-harness-you-already-run) |
+| **Windows (Zero Python/Node)** | 1-Click native installation & updates | [Windows 1-Click Installer](#windows-1-click-installer--standalone-binaries) |
+| **Windows Portable** | Single `.exe` without installation | [Standalone Binary Release](#windows-1-click-installer--standalone-binaries) |
+| **AI Agent (Antigravity, Claude Code, Cursor, Codex)** | Pair-programming skill & CLI envelope | [AI Agent Integration](#ai-agent-integration--protocol) |
+| **Python 3.11, 3.12 or 3.13** | Core engine CLI, MCP server, REST API | [Python & CLI Quickstart](#python--cross-platform-cli) |
+| **Complete Agent Workspace** | DeepSeek Harness with visual verification | [DeepWatch Workspace](#the-deepwatch-workspace) |
 
-### Standalone Binary (Windows)
+---
 
-For zero-dependency deployment and AI Agent pair-programming on Windows, download the precompiled single-file executable from [GitHub Releases](https://github.com/codevcn/watch-skill/releases):
+## Windows 1-Click Installer & Standalone Binaries
 
+For zero-dependency deployment on Windows, download precompiled binaries from the **[v1.5.6 Release](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)**:
+
+| Asset | Type | Size | Description & Checksum (SHA-256) |
+|---|---|---|---|
+| **[`watch-skill-installer.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-installer.exe)** | Setup Wizard | ~24.4 MB | **Recommended.** Installs to `%LOCALAPPDATA%\Programs\watch-skill`, sets User `PATH`, registers Windows Uninstaller.<br>`a43dd9e28b4c713a479a037b581c47b3c3878ae24b6ddbb9a9a606c4ed521afe` |
+| **[`watch-skill-windows-x86_64.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-windows-x86_64.exe)** | Portable Binary | ~28.4 MB | Standalone portable executable. Copy anywhere and run directly.<br>`ef2b5ee8427f22c95acdfc3436fa4799eca735896804c1b4479305d9c90887f1` |
+| **[`watch-skill-uninstaller.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-uninstaller.exe)** | Clean Uninstaller | ~4.8 MB | Removes binary, cleans `PATH`, and deletes cache/logs.<br>`38bf067439263aa5b2226f0a84fd704211fcb63a1b58b8b7a927ff6e0c039b4f` |
+| **[`SHA256SUMS.txt`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/SHA256SUMS.txt)** | Verification | ~300 B | Cryptographic checksums for asset integrity verification. |
+
+### 1-Click Installation Steps
+
+1. Download **[`watch-skill-installer.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-installer.exe)**.
+2. Double-click to run (no administrator rights required).
+3. Open a new PowerShell terminal and verify:
+   ```powershell
+   watch-skill --version
+   watch-skill doctor --json
+   ```
+
+### Clean Uninstallation
+
+You can remove `watch-skill` cleanly at any time through **Windows Settings → Installed Apps** (Add or Remove Programs) or by running:
 ```powershell
-# Run directly from terminal or pass to your AI Agent
-.\watch-skill-windows-x86_64.exe --version
-.\watch-skill-windows-x86_64.exe doctor --json
-.\watch-skill-windows-x86_64.exe watch "<video-url-or-file>" --json
-.\watch-skill-windows-x86_64.exe ask <video_id> "What happened?" --json
-.\watch-skill-windows-x86_64.exe moment <video_id> 01:15 --window 10.0 --json
+%LOCALAPPDATA%\Programs\watch-skill\watch-skill-uninstaller.exe
 ```
 
-### 1. Add Watch Skill to an agent you already use
+---
 
-#### Via `uvx` / `pipx` (Recommended for Python CLI users)
-```bash
-# Ephemeral run via uvx
-uvx --from "watch-skill[cli]" watch-skill --help
+## AI Agent Integration & Protocol
 
-# Or persistent install via pipx
-pipx install "watch-skill[cli]"
-```
-
-#### Via `pip`
-```bash
-pip install 'watch-skill[standard]'   # frames, retrieval and the MCP server
-watch-skill doctor                    # checks, and repairs what it can
-watch-skill watch <video-url-or-file>
-watch-skill ask <id> "what changed at 3:12?"
-```
-
-**Take the extra seriously.** A bare `pip install watch-skill` gives you the
-CLI, the verifier and the Bridge, and it cannot extract a frame: `watch` stops
-at `perceive.missing_dependency` on the first video. `[standard]` is frames,
-retrieval and MCP; add `[ocr]` to read on-screen text, `[whisper]` for local
-transcription when a source has no captions, `[loop]` for the browser, or take
-`[all]`. `watch-skill doctor` names the exact command for whatever is missing.
-
-Wire it into any MCP client — `[standard]` includes the server:
-
-```bash
-watch-skill serve              # stdio MCP server, 39 tools
-```
-
-Or install the skills into 25+ agents at once:
-
-```bash
-npx skills add oxbshw/watch-skill -g
-```
+`watch-skill` is engineered agent-first. Any AI Agent (Google Antigravity, Claude Code, Cursor, Codex CLI, Gemini CLI) can directly command the CLI or invoke its stdio MCP server.
 
 <div align="center">
 
@@ -184,32 +177,108 @@ npx skills add oxbshw/watch-skill -g
 
 </div>
 
-### Agent CLI Protocol & Standalone AI Skills
+### Installing the Agent Skill
 
-When invoking `watch-skill` from an AI Agent (Antigravity, Codex, Claude Code, Gemini CLI, Cursor):
+To give your agent native video-watching workflows, copy or link [`skills/watch-video-cli/SKILL.md`](skills/watch-video-cli/SKILL.md) to your agent's skill directory:
 
-1. **Deterministic `--json` Envelope**: Pass `--json` to `watch`, `ask`, `moment`, `search`, `list`, or `config` to get clean JSON on stdout, with errors structured with a actionable `fix`:
+```powershell
+# For Antigravity (Google DeepMind)
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\config\skills\watch-video-cli"
+Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.gemini\config\skills\watch-video-cli\"
+
+# For Claude Code
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\watch-video-cli"
+Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.claude\skills\watch-video-cli\"
+```
+
+Or install all ten skills across 25+ agents simultaneously:
+```bash
+npx skills add oxbshw/watch-skill -g
+```
+
+### The Agent CLI Protocol Envelope
+
+When invoking `watch-skill` from an agent terminal tool:
+
+1. **Deterministic `--json` Envelope**: Always pass `--json` to `watch`, `ask`, `moment`, `search`, `list`, or `config`. Stdout contains strict, machine-readable JSON:
    ```bash
    watch-skill moment <video_id> 00:45 --window 8.0 --json
    ```
-2. **Visual Verification via `frame_paths`**: The JSON envelope returns absolute, resolved paths to disk in `frame_paths`. Agents can use their native file-reading or multimodal inspection tools to view frames directly and verify visual UI states.
-3. **Safe Secret Management (`config set`)**: Configure API keys (Groq Whisper, Anthropic, OpenAI) without touching `.env` files:
+2. **Visual Multimodal Grounding via `frame_paths`**: The JSON payload returns absolute, fully-resolved filesystem paths to extracted frames. Multimodal agents can inspect these images directly with native vision tools to confirm UI states.
+3. **Structured Error Recovery**: Every error payload carries a machine-readable `code` and an actionable `fix` sentence so the agent can self-correct without guessing.
+4. **Zero Configuration Leakage**: Configure provider credentials securely:
    ```bash
    watch-skill config set WATCHSKILL_GROQ_API_KEY gsk_...
-   watch-skill config list --json   # Secrets are automatically masked
+   watch-skill config list --json   # Secrets are masked automatically
    ```
-4. **Agent Skill**: Install or provide `skills/watch-video-cli/SKILL.md` to your agent for automated ffmpeg detection/installation, temporal drill-down, and structured error recovery.
 
-### 2. The whole workspace
+---
 
-**Prerequisites.** Node `^22.19 || >=24`, which is what the CLI's `engines`
-declares. Python 3.11, 3.12 or 3.13 — the versions CI runs and the classifiers
-list — and only if you want the perception and verification engine. DeepWatch
-starts without it and reports every Watch capability as unavailable until it is
-there.
+## Smart Background Auto-Update Check
+
+The standalone Windows executable and CLI feature an intelligent, non-blocking background update checker designed specifically for unattended AI workflows:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  A new version of watch-skill is available: 1.5.6 -> 1.6.0   │
+│  Download installer: https://github.com/codevcn/watch-skill  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Non-blocking Execution**: Network checks run in a dedicated background thread with a strict **0.8-second timeout**. Local CLI commands execute immediately without network latency.
+- **Stderr-Only Notice**: Update notifications are written exclusively to `stderr`. `stdout` remains pristine JSON, ensuring machine-readable contracts never break for automated agents.
+- **24-Hour TTL Cache**: Releases are cached locally at `%LOCALAPPDATA%\watch-skill\update_check.json`. The network is never queried more than once every 24 hours.
+- **Atomic Concurrency Lock**: Multi-agent sessions or parallel CLI calls use file-lock semantics (`.lock`) to prevent redundant checks.
+- **Opt-Out Control**: Disable the check anytime via environment variable or persistent configuration:
+  ```bash
+  # Via environment variable
+  export WATCHSKILL_NO_UPDATE_CHECK=1
+
+  # Or persistently via CLI
+  watch-skill config set WATCHSKILL_CHECK_UPDATES false
+  ```
+
+---
+
+## Python & Cross-Platform CLI
+
+For macOS, Linux, and Python environments, `watch-skill` supports Python 3.11, 3.12 or 3.13 (Python 3.11+).
+
+### Via `uvx` / `pipx` (Recommended)
 
 ```bash
-# 1. the engine that sees and proves (optional, but it is the point)
+# Ephemeral run via uvx
+uvx --from "watch-skill[cli]" watch-skill --help
+
+# Or persistent install via pipx
+pipx install "watch-skill[cli]"
+```
+
+### Via `pip`
+
+```bash
+pip install 'watch-skill[standard]'   # frames, retrieval and the MCP server
+watch-skill doctor                    # checks, and repairs what it can
+watch-skill watch <video-url-or-file>
+watch-skill ask <id> "what changed at 3:12?"
+```
+
+**Take the extra seriously.** A bare `pip install watch-skill` provides the CLI and verifier, but cannot extract frames. `[standard]` includes frames, retrieval and MCP; add `[ocr]` to read on-screen text, `[whisper]` for local transcription, `[loop]` for browser verification, or install `[all]`.
+
+### Wire into any MCP Client
+
+```bash
+watch-skill serve              # stdio MCP server, 39 tools
+```
+
+---
+
+## The DeepWatch Workspace
+
+**Prerequisites.** Node `^22.19 || >=24`, and Python 3.11, 3.12 or 3.13 for the perception/verification engine.
+
+```bash
+# 1. the engine that sees and proves
 pip install 'watch-skill[standard,ocr]'
 
 # 2. the workspace
@@ -222,19 +291,11 @@ mkdir my-project
 deepwatch web --workspace ./my-project
 ```
 
-`deepwatch web` prints a local URL and opens the workspace there. This is the
-first thing you see:
+`deepwatch web` prints a local URL and opens the workspace in your browser:
 
 <div align="center">
 <img src="workspace/docs/screenshots/wide-01-onboarding.png" width="88%" alt="The DeepWatch first-run notice: the heading 'See what happened. Prove what worked.', a line saying the local evidence workspace is ready and that local capabilities need no provider and no network, an installation status panel reading 'Ready now 2 — Watch Core and Agent Model passed their runtime gates' beside 'Needs setup 10 — saved is never presented as tested', a 'Private by default' note, and the actions View diagnostics, Explore offline and Finish setup.">
 </div>
-
-Two numbers rather than one fraction, because "installed" and "proved" are
-different facts and a single percentage would blur them. **Ready now** counts
-what has passed a runtime gate. **Needs setup** counts what has not been
-configured or not been tested — saved is never presented as tested. You can
-open the workspace without a provider: the Library, the index and the Watch
-tools all work locally.
 
 **Without a global install**, the same package through `npx`:
 
@@ -244,67 +305,22 @@ mkdir my-project
 npx --yes @deepwatch/cli web --workspace ./my-project
 ```
 
-`npx` is a way of running `@deepwatch/cli`, not a different package — there is
-no unscoped `deepwatch` on npm.
-
-**What `setup` downloads.** The pinned DeepSeek Harness, its exact required
-peers, and the DeepWatch packages at this release's version, into a runtime
-under your DeepWatch home. It prints the registry, the versions and the
-destination and stops for your agreement; `--yes` agrees in advance and
-`--offline` refuses outright. Nothing is installed globally except the CLI you
-installed yourself. `--artifacts <dir>` takes the *DeepWatch* packages from
-verified local tarballs this product hashes itself instead of from the registry,
-which is what a checkout build wants. It does not make the install offline: the
-pinned Harness and its generated peer closure are fetched from npm in that mode
-too, and the plan `setup` prints says so before it fetches anything.
-
-**A model provider is not required to start.** The workspace boots, the Library
-works and Watch tools answer without one. You need a provider for the *agent* —
-chat, tool use, and the critique step of THE LOOP.
-
-#### Connect a model, and prove the connection
-
-Four steps in the workspace itself, in this order. The last one is the point.
+#### Connect a Model and Prove the Connection
 
 | In the app | What it does |
 | --- | --- |
-| **Settings → Models → Add provider** | Names a provider and takes a key, *or* leaves the field blank and reads one from the launch environment. |
+| **Settings → Models → Add provider** | Names a provider and takes a key, *or* reads one from the launch environment. |
 | **Settings → Role Bindings → Choose a model** | Binds a specific provider and model to a role — Chat, or Visual perception. |
 | **Run provider test** | Sends one real request to that exact binding and reports what came back. |
 | **Ready** | Only now will the workspace send anything to it. |
 
 <div align="center">
-<img src="workspace/docs/screenshots/release/02-provider-ready.png" width="88%" alt="DeepWatch Settings on Role Bindings. Chat is marked Ready, bound to OpenRouter and deepseek/deepseek-v4-pro, with the actions Change model, Run provider test and Unassign Chat. Visual perception and Speech to text are each marked Not configured with nothing assigned and a Choose a model button.">
+<img src="workspace/docs/screenshots/release/02-provider-ready.png" width="88%" alt="DeepWatch Settings on Role Bindings. Chat is marked Ready, bound to OpenRouter and deepseek/deepseek-v4-pro.">
 </div>
 
-**Saved is not presented as tested.** A binding with no successful provider test
-behind it is blocked, and the turn says so: *"…is bound but no provider test
-has proved it, so nothing may be sent to it yet."* Re-run the test after a host
-restart — the binding persists, the proof does not.
+### DeepSeek Harness Integration
 
-A capability is assigned per role, not per provider. A role with nothing
-assigned says so and never quietly falls back to another role's model, which is
-why two of the three above read *Not configured* rather than inheriting Chat's.
-
-#### A first task worth running
-
-Open a workspace directory and ask for something that touches the disk:
-
-> Create `notes/totals.json` with the numbers 12, 30 and 18, then read it back
-> and tell me the sum.
-
-You get an answer, and underneath it a row per tool call naming the exact
-workspace-relative path each one touched. That is the shape everything else in
-this README builds on.
-
-**Dependency readiness is not the same as a capability you have used.**
-`deepwatch doctor` reports what is *installed and reachable* — Node, the
-Harness, the profile, Watch Core, ffmpeg. It does not claim those capabilities
-have been exercised on your machine, and the workspace's own readiness panel
-counts the same thing. A green row means the pieces are there; running the task
-above is what tells you the pieces work together.
-
-### 3. Into a DeepSeek Harness you already run
+Add Watch capabilities to a DeepSeek Harness profile you already run:
 
 ```bash
 cd <your-project>
@@ -312,87 +328,13 @@ dsh plugin --profile <your-profile> add @deepwatch/dsh-bundle
 dsh --profile <your-profile>
 ```
 
-**There is no `web` subcommand.** `dsh web` is an alias of `dsh --profile web`,
-so `dsh --profile <your-profile> web` boots your profile and then hands `web`
-to the app as an argument — which is not what you meant and does not say so.
-The Harness prints this itself under `dsh --help`: *`dsh --profile web` — boot
-the web profile (same as: `dsh web`)*. Name your profile once, after
-`--profile`, and pass nothing else.
-
-**Name the same profile in both commands.** `dsh plugin add` writes into the
-profile you name; installing into one and booting another leaves you looking at
-an agent with no `watch_*` tools and no error to explain it.
-
-**Start it from your project directory.** The receipt journal is written under
-the working directory the Host is launched in, so `cd` there first — otherwise
-the Library indexes a directory you are not working in and reports `empty`.
-
-To check what a profile actually composes before you start it:
-
-```bash
-dsh --profile <your-profile> --dump-config | grep watch-
-```
-
-**Compatible Harness.** This release was measured against
-`@deepseek-ai/dsh@0.1.1-rc.2`, exactly — it is a pinned peer, not a range, so a
-profile on a different Harness is a combination nobody tested. `dsh --version`
-tells you which you have.
-
-That is the installation. The package declares `dsh.bundle.patch`, so DSH
-reconciles it into the profile's layer stack and applies the patch after its
-own. Four narrower variants — media, browser, memory, document — are declared
-alongside it for a profile that wants one capability rather than all of them.
-
-Add the engine — with the extras, because the bundle's media capabilities are
-the engine's:
-
-```bash
-pip install 'watch-skill[standard,ocr]'
-```
-
-`[standard]` is frames, retrieval and MCP; `[ocr]` reads on-screen text. A bare
-`pip install watch-skill` installs a Core that cannot extract a frame, and the
-Bridge would connect to it and report `perceive.missing_dependency` on the first
-video. The Bridge finds the executable on `PATH` by itself.
-
 Full guide: **[`@deepwatch/dsh-bundle`](workspace/packages/watch/bundle/README.md)**.
-
-**Requirements.** The same as everywhere else here: Node `^22.19 || >=24`, and
-Python 3.11, 3.12 or 3.13 for the engine. Windows, macOS and Linux.
-
----
-
-## Which package is for you
-
-Twenty-one packages ship from this repository across two registries, and only
-three of them are things a person installs on purpose.
-
-| Package | Registry | Install it if |
-| --- | --- | --- |
-| **`watch-skill`** | [PyPI](https://pypi.org/project/watch-skill/) | You want perception, evidence, retrieval and verification — from a CLI, over MCP, or through REST. This is the engine. |
-| **`@deepwatch/cli`** | [npm](https://www.npmjs.com/package/@deepwatch/cli) | You want the whole workspace. Provides the `deepwatch` command, which provisions and launches everything else. |
-| **`@deepwatch/dsh-bundle`** | [npm](https://www.npmjs.com/package/@deepwatch/dsh-bundle) | You already run a DeepSeek Harness and want Watch added to a profile you control. |
-
-Everything else under `@deepwatch/` is a **plugin or an internal dependency** —
-the Harness rows the bundle composes (`dsh-tools`, `dsh-library`, `dsh-live`,
-`dsh-memory`, `dsh-workspace` and the rest) and the packages they share
-(`dsh-contracts`, `dsh-sdk`, `dsh-core-bridge`). They are published so the
-bundle resolves and so a composition can pick one row rather than all of them.
-Installing one directly is for embedding a single piece in a composition you
-control; it is not a route into the product.
-
-`npx @deepwatch/cli` is a way of *running* `@deepwatch/cli` rather than a
-different package, and there is no unscoped `deepwatch` on npm.
-
-**[The package map](workspace/docs/packages.md)** shows how the twenty compose,
-and each package's own README says what it is for and what it needs.
 
 ---
 
 ## THE LOOP: observe, act, verify
 
-Perception is only half of it. THE LOOP is what an agent does with perception
-when it is trying to fix something.
+Perception is only half of it. THE LOOP is what an agent does with perception when fixing software.
 
 <div align="center">
 <img src="docs/assets/loop_before_after.gif" alt="THE LOOP: an agent finds TOTAL: $NaN on its own checkout page, receives a structured critique naming the timestamp the fault was visible at, the code is fixed, and a re-capture confirms the fault is gone." width="720">
@@ -405,245 +347,12 @@ watch-skill loop start http://localhost:3000/checkout \
   "the total updates when quantity changes, and no NaN appears"
 ```
 
-1. **Observe** — a real browser records the page to video; frames are extracted
-   and OCR'd, each with an absolute timestamp.
-2. **Critique** — a vision model is asked whether the capture meets the criteria
-   you wrote. It reports issues with the timestamp each was seen at.
-3. **Fix** — you change the code.
-4. **Verify** — `watch-skill loop iterate` re-captures and diffs against the
-   previous run, so "fixed" means the thing that was wrong is gone.
+1. **Observe** — a browser records page interaction to video; frames are extracted and OCR'd with absolute timestamps.
+2. **Critique** — a vision model is asked whether criteria are met. It reports issues with exact timestamps.
+3. **Fix** — the agent changes the code.
+4. **Verify** — `watch-skill loop iterate` re-captures and diffs against the previous run to prove the fault is resolved.
 
-The critique step needs a vision-capable model. Without one, capture, frames,
-OCR and verification still work, and the critique says it cannot judge rather
-than guessing. See **[THE LOOP](docs/guides/the-loop.md)**.
-
-### Corrections become lessons
-
-When an answer is wrong, you correct it. Watch Skill classifies the correction,
-stores it as a lesson in the local store, re-asks the question with the lesson
-applied where the error class is mechanical, and counts what that saved.
-
-Lessons persist between runs and stay on your machine. Nothing learns on its
-own — the correction is yours to give — and nothing is uploaded.
-**[Lessons and savings](docs/guides/lessons-and-savings.md)**.
-
----
-
-## The DeepWatch Workspace
-
-Everything above is the engine, and any agent can use it. DeepWatch is built on
-the official DeepSeek Harness with Watch Skill already composed in, so an agent
-you run there produces receipts and verdicts without you wiring anything up.
-
-The rest of this section is one job, end to end. **A checkout page charges the
-wrong amount, and all you have is a screen recording of it.**
-
-Give the recording to the engine · ask it where the amount went wrong · repair
-the code · prove the repair from outside the agent · come back to the record
-tomorrow. Every figure and verdict below is from the run that produced this
-section, on Watch Skill 1.5.6 and DeepWatch 0.1.3.
-
-### 1 · Give the recording to the engine
-
-Four seconds of somebody changing a quantity. Nothing is typed about what is
-wrong with it.
-
-```bash
-watch-skill watch ./checkout-bug.webm --index
-```
-
-Frames come out with absolute timestamps, and the on-screen text with them:
-
-```
-Selection: 4 kept from 8 candidates (4 near-duplicates dropped)
-  t=00:00   2 × $10.00   Subtotal $20.00   Tax (10%) $2.00   Total $20.00
-  t=00:01   5 × $10.00   Subtotal $50.00   Tax (10%) $5.00   Total $50.00
-  t=00:02   3 × $10.00   Subtotal $30.00   Tax (10%) $3.00   Total $30.00
-```
-
-The bug is now readable: tax is computed, displayed, and left out of the total.
-It is readable *because those frames survived* — three amounts changing in an
-otherwise identical layout look like a duplicate to a frame sampler, so a
-scripted capture writes down the moments it acted and the engine pins them.
-
-### 2 · Ask where it happened
-
-```bash
-watch-skill ask <video-id> "what was the total when the quantity was three?"
-```
-
-The answer cites the timestamp it came from and the frame is on disk. When the
-recording does not show an answer, that is what it says: an unanswerable
-question is not a cue to guess.
-
-### 3 · Repair the application
-
-Now the agent has somewhere to start. It reads the evidence, finds `orderTotal`
-in `cart.js`, and sees that the tax it computed never reaches the return value.
-
-Every file it touches leaves a receipt naming the path, and every path a tool
-declares is resolved against one workspace boundary. A write outside it is
-refused *and* written down: the file is not touched, and the journal gains a
-receipt tagged `scope:outside_workspace` / `state:cancelled` naming the attempt.
-Both halves matter — a boundary that refused silently would leave you no way to
-tell it had ever been tested.
-
-Here is what it actually left behind, from the run that produced this section.
-Fourteen rows went into the journal and they fold to twelve receipts, because
-two were written twice — once when the tool returned, and again when Core's
-verdict arrived. The four `todo_write` and `glob` rows are left out here; these
-are the eight that touched something:
-
-| Receipt | Verdict |
-| --- | --- |
-| `watch_list_sources` | — |
-| `watch_ask_source` | — |
-| `read — checkout/cart.js` | — |
-| `read — checkout/index.html` | — |
-| `watch_moment` | — |
-| **`edit — checkout/cart.js`** | **VERIFIED** |
-| `watch_verify` | INCONCLUSIVE |
-| `pwsh` | — |
-
-The model was told a customer was charged the wrong amount and that a recording
-existed. It was not told what the bug was, and nothing in the workspace names
-it. It listed the sources, asked the recording, pulled a moment out of it, read
-two files, changed one line, and ran a verification of its own — which came
-back `INCONCLUSIVE`, because the checks it wrote could not be evaluated. That
-answer is reported as it stands rather than rounded to a pass.
-
-### 4 · Prove the repair, from outside the agent
-
-The contract was frozen before the repair and lives outside the directory the
-agent can write to. Watch Core evaluates it in a separate process and returns a
-verdict the agent does not author — `VERIFIED`, `FAILED`, `UNVERIFIED` or
-`INCONCLUSIVE`.
-
-The contract for the run above is
-`c98bd4ae3d13864869ae02be46cdba48fb97f790ec50feead6e30d17ccc007b0`, and its
-digest was taken before the agent started. Before the repair Core returned
-`fail` on all three checks — *expected 22, got 20*, *expected 33, got 30*, and
-`#total text = '$20.00'` read out of the rendered page. Afterwards, against the
-same unchanged contract, all three pass and the page renders `$22.00`.
-
-<div align="center">
-<img src="workspace/docs/screenshots/release/06-independent-verification.png" width="86%" alt="A VERIFIED result card from watch_verify: two of two checks passed, one confirming a file exists and one confirming its total field, shown with the contract's sha256 digest.">
-</div>
-
-*The card above is photographed from a different task — the `totals.json` one
-in [Start here](#a-first-task-worth-running) — because it is what a `VERIFIED`
-card looks like. It is not a picture of the checkout repair; that repair's
-evidence is the contract and the receipts named above.*
-
-The contract's SHA-256 is on screen, so you can tell it is the same contract.
-
-The verdict is the answer, and each of the four means something different.
-Measured on the contract above: against the repaired workspace it is
-`VERIFIED`; pointed at a directory that does not hold those files the checks
-still run and report false, so it is `FAILED`; an expectation written as prose
-with no executable check behind it is `UNVERIFIED` — honest, and not a pass;
-and a check that cannot be evaluated at all comes back `INCONCLUSIVE` with the
-check's own status left `null` rather than folded into a false. Given no
-workspace to measure against, Core refuses the request outright
-(`verify.workspace_unresolved`) instead of guessing a directory.
-
-### 5 · Come back to it tomorrow
-
-Restart everything — kill the process, start it again. Both records come back,
-and they are two different stores worth telling apart.
-
-**Watch Core's index of sources** lives in the Watch data directory. It is
-there whether anything is open or not, and `watch-skill list` reads it with no
-workspace involved. **The Library's index of receipts** is the Host's own: the
-journal is written under the workspace at `.watch/receipts`, and the Library
-rebuilds its index from that file on Refresh. It is derived and safe to discard.
-
-That is why the Library follows the workspace. Run the app from the directory
-you are working in; a Host started somewhere else journals somewhere else, and
-a Library that reports `empty` after a restart is usually pointed at the wrong
-directory rather than missing data.
-
-Measured on the run above: fourteen receipts written, the process killed, and
-after the restart all fourteen reopen — same record ids, same last revision,
-and the two that Core had ruled on still carrying their own verdicts,
-`VERIFIED` for the repair and `INCONCLUSIVE` for a check that could not run.
-
-<div align="center">
-<img src="workspace/docs/screenshots/release/08-library-receipts.png" width="86%" alt="The Library screen showing matches with rows for read and write on workspace-relative paths and a pwsh call. A notice reads 'Index ready. Answered by this workspace's own host', and the page is marked Local-first.">
-</div>
-
-Compare puts the failing run and the passing run side by side and shows where
-their verdicts diverged. A comparison describes a difference; it never issues a
-verdict of its own.
-
-<div align="center">
-<img src="workspace/docs/screenshots/release/09-compare-two-records.png" width="86%" alt="The Compare screen with two verification records selected: a FAILED watch_verify on the left and a VERIFIED one on the right from the run that repaired the file, with a difference table counting each as present on one side only.">
-</div>
-
-Every image here is a photograph of a running build, and they do not all come
-from the same one — saying they did would be the easiest false claim on this
-page. The onboarding shot is from the current gallery, retaken against **Watch
-Skill 1.5.6 and DeepWatch 0.1.4** with the deterministic browser scenario
-passing 42 of 42 in front of it; a gate refuses the set when the shots and the
-engine they were taken against disagree. The Settings and result-card shots are
-from the `1.5.6` / `0.1.4` candidate, kept because nothing in this release
-changed the surface each one shows.
-
-**[The screenshot page](workspace/docs/screenshots-release.md)** names the build
-behind every image, and carries the full 57-shot gallery across three
-viewports.
-
-**What "local-first" means here, precisely.** Your sources, receipts, verdicts
-and memory are stored on your machine, and Library search runs there. It does
-not mean nothing uses the network: `setup` downloads the runtime from npm, some
-Watch extras fetch a model the first time they run, and a hosted model provider
-you configure receives what you send it. The parts that stay local are the
-record and the retrieval over it.
-
-Capture is a separate consent from any of that. Every source the workspace can
-record is listed with the permission it needs and whether that permission has
-been asked for — and nothing is asked for until you use it:
-
-<div align="center">
-<img src="workspace/docs/screenshots/release/10-perception-sources.png" width="88%" alt="DeepWatch Settings on Sources, listing Screen, Window, Camera, Microphone and Live session. Each is tagged Local and Not requested, with the permission shown as 'Requested at first use'; the live session inherits its sources, and the supervised browser needs no OS permission.">
-</div>
-
-Holding a provider key does not permit media to leave the machine, and a cloud
-engine needs its own consent even with the network open. Those are two separate
-switches on purpose.
-
----
-
-## What people use it for
-
-| | |
-| --- | --- |
-| **Ask a video a question** | Index a recording once, then ask about it. Answers cite timestamps you can open. [`01-watch-and-ask`](examples/01-watch-and-ask) |
-| **Prove an agent's work** | A deterministic contract Core runs — file digests, JSON values, SQL, HTTP, DOM. [`14-browser-verification`](examples/14-browser-verification) |
-| **Fix a UI by looking at it** | Capture, critique, fix, re-verify. [`04-ui-loop`](examples/04-ui-loop) |
-| **Search across everything** | One index over every source you have watched. [`03-cross-video-search`](examples/03-cross-video-search) |
-| **Work offline** | Local whisper and OCR, no provider, nothing leaves the machine. [`15-private-offline-workflow`](examples/15-private-offline-workflow) |
-| **Watch something live** | A stream or a browser session, bounded and cursored. [`18-live-watch`](examples/18-live-watch) |
-
-Each is a directory you can run, with its prerequisites and expected output
-written next to it.
-
-<details>
-<summary><b>All 20 examples, by what they teach</b></summary>
-
-<br>
-
-| | |
-| --- | --- |
-| Learn the core | [01 Watch and ask](examples/01-watch-and-ask) · [02 Focused moment](examples/02-focused-moment) · [03 Cross-video search](examples/03-cross-video-search) |
-| Build with agents | [06 MCP and REST](examples/06-agent-integration) · [09 Framework adapters](examples/09-framework-adapters) · [15 Private offline workflow](examples/15-private-offline-workflow) |
-| Understand and organise | [05 Multilingual Arabic](examples/05-multilingual-arabic) · [10 Structured extraction](examples/10-structured-extraction) · [11 Batch mode](examples/11-batch-mode) · [12 Library memory](examples/12-library-memory) · [16 Shareable viewer](examples/16-shareable-viewer) |
-| Verify and improve | [04 UI loop](examples/04-ui-loop) · [07 Lessons and stats](examples/07-lessons-and-stats) · [08 Loop types](examples/08-loop-types) · [13 Self-improvement](examples/13-self-improvement) · [14 Browser verification](examples/14-browser-verification) · [17 Freshness and offline](examples/17-freshness-and-offline) · [20 Observer loop](examples/20-observer-loop) |
-| Watch live | [18 Live watch](examples/18-live-watch) · [19 Live browser](examples/19-live-browser) |
-
-That is all 20 examples; the index is **[examples/](examples/README.md)**.
-
-</details>
+See **[THE LOOP guide](docs/guides/the-loop.md)** and **[Lessons and savings](docs/guides/lessons-and-savings.md)**.
 
 ---
 
@@ -664,63 +373,64 @@ flowchart LR
   A["Any other agent<br/>MCP · CLI · REST"] <--> C
 ```
 
-**Watch Core is the only thing that issues a verdict.** The Host may notice,
-correlate, freeze a contract and ask — it may not decide the answer. That is
-[ADR-002](workspace/docs/adr/), and a build gate fails if anything under
-`packages/` starts producing verdicts.
+**Watch Core is the only process that issues a verdict.** The Host may notice, correlate, and freeze a contract; it may not decide the answer.
 
-A receipt records what a tool call *did*; a verdict records what Core *checked*.
-They are written by different processes and the Library shows them as different
-columns, because an agent that ran a command successfully and an agent that did
-the right thing are not the same claim.
+- **`VERIFIED`**: All deterministic assertions passed.
+- **`FAILED`**: One or more assertions failed.
+- **`UNVERIFIED`**: Expectation written in prose without an executable check.
+- **`INCONCLUSIVE`**: Check could not be evaluated (e.g. missing files or timed-out runner).
 
-More: **[architecture](docs/architecture.md)** ·
-**[verification](docs/verification.md)** ·
-**[the 39 tools](docs/tools/README.md)**.
+<div align="center">
+<img src="workspace/docs/screenshots/release/06-independent-verification.png" width="86%" alt="A VERIFIED result card from watch_verify: two of two checks passed, shown with the contract's sha256 digest.">
+</div>
+
+More: **[architecture](docs/architecture.md)** · **[verification](docs/verification.md)** · **[the 39 tools](docs/tools/README.md)**.
 
 ---
 
-## What works, and what it needs
+## CLI Command Reference
 
-| Capability | Out of the box | Needs |
+| Command | Usage | Description |
+|---|---|---|
+| `doctor` | `watch-skill doctor [--json]` | Diagnose system dependencies (`ffmpeg`, OCR weights, JS runtime) and repair them. |
+| `watch` | `watch-skill watch <url-or-file> [--json]` | Ingest and index a video file or stream into timestamped evidence. |
+| `ask` | `watch-skill ask <video_id> "<query>" [--json]` | Ask questions about indexed video content; returns timestamped evidence citations. |
+| `moment` | `watch-skill moment <video_id> <timestamp> [--json]` | Extract a focused temporal window with absolute image frame paths. |
+| `search` | `watch-skill search "<query>" [--json]` | Perform cross-video semantic and OCR full-text search across indexed library. |
+| `list` | `watch-skill list [--json]` | Enumerate all indexed videos and recordings in local storage. |
+| `config` | `watch-skill config {get\|set\|list} [KEY] [VAL]` | Inspect and update configuration settings with automatic secret masking. |
+| `loop` | `watch-skill loop {start\|iterate\|status}` | Run the Observe → Critique → Fix → Verify visual agent loop. |
+| `serve` | `watch-skill serve [--transport stdio\|sse]` | Launch the official MCP server (exposing all 39 tools). |
+
+---
+
+## What people use it for
+
+| Use case | What it does | Example |
 | --- | --- | --- |
-| Start the app, browse, read diagnostics | ✅ | nothing |
-| Verification contracts, containment, receipts | ✅ | nothing |
-| Video frames and scenes | with `[standard]` | `ffmpeg` ≥ 5.1 — `watch-skill doctor` installs it |
-| Reading on-screen text | with `[ocr]` | a first-use model download (~80 MB) |
-| Speech to text | with `[whisper]` | a first-use model download; captions are used first when a source has them |
-| Chat with an agent | — | a provider you add and bind |
-| Visual scene description | — | a model that can see images |
-| Browser capture / THE LOOP | with `[loop]` | `playwright install chromium` |
-| Memory | off | enable in Settings; the store is plaintext and says so |
-| Desktop app | not distributed — [no installer exists](workspace/docs/known-limitations.md) | run `deepwatch web` |
+| **Ask a video a question** | Index a recording once, then ask about it. Answers cite timestamps you can open. | [`01-watch-and-ask`](examples/01-watch-and-ask) |
+| **Prove an agent's work** | A deterministic contract Core runs — file digests, JSON values, SQL, HTTP, DOM. | [`14-browser-verification`](examples/14-browser-verification) |
+| **Fix a UI by looking at it** | Capture, critique, fix, re-verify. | [`04-ui-loop`](examples/04-ui-loop) |
+| **Search across everything** | One index over every source you have watched. | [`03-cross-video-search`](examples/03-cross-video-search) |
+| **Work offline** | Local whisper and OCR, no provider, nothing leaves the machine. | [`15-private-offline-workflow`](examples/15-private-offline-workflow) |
+| **Watch something live** | A stream or a browser session, bounded and cursored. | [`18-live-watch`](examples/18-live-watch) |
 
-DeepWatch starts, and stays useful, with no provider configured: verification,
-containment, the Library and local perception are all local. What needs a
-provider is the *agent* — chat, tool use, and the critique step of THE LOOP.
+<details>
+<summary><b>All 20 examples, by what they teach</b></summary>
 
-**Three ways a capability arrives, and they are not interchangeable.** A **local
-dependency** (`ffmpeg`, `yt-dlp`, a JS runtime) runs on your machine and
-`watch-skill doctor` will fetch and repair it. A **downloaded model** (OCR
-weights, whisper) also runs on your machine, is a large one-time download, and
-nothing about your files leaves it. A **hosted provider** — the agent's model,
-and any vision model you bind — is somebody else's service, with their latency,
-price and terms, and it sees what you send it. An OpenAI-compatible server you
-run yourself (Ollama, vLLM, LM Studio, llama.cpp) is the hosted route pointed at
-your own hardware: the data stays local, and whether a given model supports tool
-calls or images is a property of that model, which DeepWatch reports rather than
-works around.
+<br>
 
-Nothing reaches a provider until you add one, and holding a provider credential
-is not permission to upload a frame or a transcript — that is a separate
-consent.
+| Category | Examples |
+| --- | --- |
+| Learn the core | [01 Watch and ask](examples/01-watch-and-ask) · [02 Focused moment](examples/02-focused-moment) · [03 Cross-video search](examples/03-cross-video-search) |
+| Build with agents | [06 MCP and REST](examples/06-agent-integration) · [09 Framework adapters](examples/09-framework-adapters) · [15 Private offline workflow](examples/15-private-offline-workflow) |
+| Understand and organise | [05 Multilingual Arabic](examples/05-multilingual-arabic) · [10 Structured extraction](examples/10-structured-extraction) · [11 Batch mode](examples/11-batch-mode) · [12 Library memory](examples/12-library-memory) · [16 Shareable viewer](examples/16-shareable-viewer) |
+| Verify and improve | [04 UI loop](examples/04-ui-loop) · [07 Lessons and stats](examples/07-lessons-and-stats) · [08 Loop types](examples/08-loop-types) · [13 Self-improvement](examples/13-self-improvement) · [14 Browser verification](examples/14-browser-verification) · [17 Freshness and offline](examples/17-freshness-and-offline) · [20 Observer loop](examples/20-observer-loop) |
+| Watch live | [18 Live watch](examples/18-live-watch) · [19 Live browser](examples/19-live-browser) |
 
-**What repairs itself.** `watch-skill doctor` repairs *dependencies*: it
-downloads `yt-dlp` and keeps it current, bootstraps a JS runtime, installs OCR
-language data, and fetches `ffmpeg` where it can, reporting every repair. That
-is the only thing here that acts without being asked. There is no automatic task
-resumption, no autonomous learning, and no encryption at rest in this release.
-**[Known limitations](workspace/docs/known-limitations.md)** is the full list.
+That is all 20 examples; the index is **[examples/](examples/README.md)**.
+
+</details>
 
 ---
 
@@ -728,7 +438,7 @@ resumption, no autonomous learning, and no encryption at rest in this release.
 
 Against a leading video-understanding API, same files, same scorer:
 
-| | Watch Skill | Baseline |
+| Metric | Watch Skill | Baseline |
 | --- | --- | --- |
 | Written-analysis groundedness | **89.7%** | 27.9% |
 | Citations per 100 words | **13.23** | 0.12 |
@@ -740,9 +450,64 @@ Trade-offs against the alternatives: **[comparison](docs/comparison.md)**.
 
 ---
 
+## Community & ecosystem
+
+Tutorials, videos, and directories covering Watch Skill and DeepWatch.
+
+**Directories**
+
+| Directory | Link | Description |
+| --- | --- | --- |
+| **Skills.sh** | [skills.sh/oxbshw/watch-skill](https://www.skills.sh/oxbshw/watch-skill/watch) | Lists agent skills and installs them into supported clients with one command. |
+| **SkillsMP** | [skillsmp.com/creators/oxbshw/watch-skill](https://skillsmp.com/creators/oxbshw/watch-skill) | Directory carrying the portable skills library. |
+| **MCP Registry** | [`server.json`](server.json) | The `io.github.oxbshw/watch-skill` catalog entry. |
+
+The full ecosystem collection, including community walkthroughs, videos, and integrations: **[docs/ecosystem.md](docs/ecosystem.md)**.
+
+---
+
+## Contributing
+
+Issues and pull requests welcome. **[CONTRIBUTING.md](CONTRIBUTING.md)** has the
+twenty-minute path: what to install, which gates to run, and commit standards.
+Security policy: **[SECURITY.md](SECURITY.md)**. Design decisions and their reasons:
+**[DECISIONS.md](docs/DECISIONS.md)** and **[ROADMAP.md](docs/ROADMAP.md)**.
+
+---
+
+## Local Development & Testing
+
+```bash
+# Setup Python development environment
+uv sync --extra all
+
+# Run offline test suite (must be green before committing)
+uv run pytest -m "not network"
+
+# Code formatting and linting
+uv run ruff check .
+
+# Run workspace test suite
+node --test workspace/tests/pending-release-claims.test.mjs workspace/tests/release-workflow.test.mjs workspace/tests/commit-policy.test.mjs
+```
+
+### Packaging Windows Executables
+
+To build standalone Windows binaries and installers locally:
+
+```powershell
+# Build standalone single-file binary using PyInstaller
+uv run pyinstaller packaging/pyinstaller/watch-skill.spec
+
+# Build 1-Click Installer and Uninstaller using Inno Setup
+iscc packaging/inno/watch-skill-installer.iss
+```
+
+---
+
 ## Documentation
 
-| | |
+| Guide | Description |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Install, first watch, first agent connection |
 | [Install and upgrade](workspace/docs/install-and-upgrade.md) | Both products, optional extras, compatibility policy |
@@ -750,64 +515,28 @@ Trade-offs against the alternatives: **[comparison](docs/comparison.md)**.
 | [Tool reference](docs/tools/README.md) | All 39 MCP tools and their REST/CLI counterparts |
 | [Verification](docs/verification.md) | Contracts, the fourteen check types, assurance levels |
 | [Architecture](docs/architecture.md) | Boundaries, data flow, extension points |
-| [Agent matrix](docs/agents/README.md) | Per-client setup and how far each is verified |
-| [Troubleshooting](docs/troubleshooting.md) | Dependency repair and common runtime errors |
+| [Agent matrix](docs/agents/README.md) | Per-client setup and verification status |
+| [Troubleshooting](docs/troubleshooting.md) | Dependency repair and runtime diagnostics |
 | [Cost](docs/cost.md) | What runs free, what a provider charges for |
-| [Known limitations](workspace/docs/known-limitations.md) | What this release does not do |
+| [Known limitations](workspace/docs/known-limitations.md) | Scope boundaries and unreleased features |
 
-**DeepWatch:** [workspace README](workspace/README.md) ·
-[setup](workspace/docs/setup.md) ·
-[the twenty packages](workspace/docs/packages.md) ·
-[releasing](workspace/docs/releasing.md) ·
-[platform support](workspace/docs/platform-support.md)
-
-Three tool counts, because they answer different questions: **39** MCP tools
-from `watch-skill serve`, **22** `watch_*` tools added to an agent inside
-DeepWatch, **47** tools that agent is offered in total.
+**DeepWatch:** [workspace README](workspace/README.md) · [setup](workspace/docs/setup.md) · [the twenty packages](workspace/docs/packages.md) · [releasing](workspace/docs/releasing.md) · [platform support](workspace/docs/platform-support.md)
 
 ---
 
-## Community & ecosystem
+## Acknowledgements & Upstream Attribution
 
-Coverage written by other people, and the directories that carry the project.
-Described by what each one actually contains — a write-up is somebody trying
-the thing and reporting back, which is not the same as an endorsement, and none
-of these say anything about how many people use it.
+This repository is maintained by **[codevcn](https://github.com/codevcn)** as an independent distribution tailored for automated Windows deployments, 1-Click native installers, and autonomous AI Agent workflows.
 
-**Tutorials and write-ups**
-
-| | |
-| --- | --- |
-| [Watch Skill 使用教程：让 Codex 看懂视频和录屏](https://www.opcchina.ai/?p=4329) | A step-by-step walkthrough of wiring Watch Skill into Codex CLI: install, MCP configuration, and a first video. Chinese. |
-| [Watch Skill: AI video analysis and video correction](https://en.aistacknav.com/watch-skill-ai-video-analysis-video-correction/) | Setup and operation guide with its own worked use cases and a troubleshooting section. English. |
-
-**Video**
-
-| | |
-| --- | --- |
-| [Walkthrough, part one](https://www.bilibili.com/video/BV1XnNK6DEdr/) · [part two](https://www.bilibili.com/video/BV1eBKp6TEKh/) | A screen-recorded run-through on Bilibili, covering installation and a first analysis. Chinese. |
-
-**Directories**
-
-| | |
-| --- | --- |
-| [Skills.sh](https://www.skills.sh/oxbshw/watch-skill/watch) | Lists the ten agent skills and installs them into a supported client with one command. |
-| [SkillsMP](https://skillsmp.com/creators/oxbshw/watch-skill) | A second skills directory carrying the same set. |
-| [MCP registry](server.json) | The `io.github.oxbshw/watch-skill` server entry, for clients that resolve MCP servers by name. |
-
-The full collection, kept separated into tutorials, video, integrations and
-directory listings: **[docs/ecosystem.md](docs/ecosystem.md)**. If you have
-written or recorded something, open a pull request adding it there.
+- **Upstream Project**: Watch Skill was originally conceived, designed, and authored by **[oxbshw](https://github.com/oxbshw)** at [oxbshw/watch-skill](https://github.com/oxbshw/watch-skill).
+- **Intellectual Property & Heritage**: We gratefully acknowledge the foundational architecture, verification contract designs, and perception algorithms created by oxbshw and upstream contributors.
+- **License Compliance**: This project is licensed under the **[MIT License](LICENSE)**. All original copyright notices (`Copyright (c) 2026 oxbshw`) and upstream licenses are strictly preserved throughout the codebase and submodules.
 
 ---
 
-## Contributing
+## License
 
-Issues and pull requests welcome. **[CONTRIBUTING.md](CONTRIBUTING.md)** has the
-twenty-minute path: what to install, which gate to run, and how the commit
-messages are shaped. Security policy: **[SECURITY.md](SECURITY.md)**. Design
-decisions and their reasons: **[DECISIONS.md](docs/DECISIONS.md)** and
-**[ROADMAP.md](docs/ROADMAP.md)**.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for full legal text.
 
 <div align="center">
 <br>
