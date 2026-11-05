@@ -160,6 +160,7 @@ jobs:
   pypi:
     name: Publish to PyPI
     needs: build
+    if: github.repository != 'codevcn/watch-skill'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -231,6 +232,7 @@ jobs:
   mcp-registry:
     name: Publish the MCP registry entry
     needs: pypi
+    if: github.repository != 'codevcn/watch-skill'
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # OIDC identity the registry verifies against this repo
@@ -252,6 +254,7 @@ jobs:
   github-release:
     name: Complete the GitHub Release
     needs: [build, pypi]
+    if: github.repository != 'codevcn/watch-skill'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -283,7 +286,7 @@ jobs:
   # partial release gets mistaken for a failed one.
   report:
     name: Report what reached which registry
-    if: always()
+    if: always() && github.repository != 'codevcn/watch-skill'
     needs: [build, pypi, mcp-registry, github-release]
     runs-on: ubuntu-latest
     steps:

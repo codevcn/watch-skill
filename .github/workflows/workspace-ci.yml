@@ -347,7 +347,7 @@ jobs:
   # uploaded report is intentionally smaller than the local diagnostic set.
   browser-e2e:
     needs: changes
-    if: needs.changes.outputs.workspace == 'true'
+    if: needs.changes.outputs.workspace == 'true' && github.repository != 'codevcn/watch-skill'
     runs-on: ubuntu-latest
     defaults:
       run:
