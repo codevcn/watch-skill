@@ -40,7 +40,11 @@ const REPO = join(ROOT, '..')
  * left on an older prerelease is exactly what this exists to catch.
  */
 export const VERSIONS = {
-  core: { name: 'Watch Skill', to: '1.4.3', from: ['1.4.0rc1', '1.4.0', '1.4.1', '1.4.2'] },
+  core: {
+    name: 'Watch Skill',
+    to: '1.5.6',
+    from: ['1.4.0rc1', '1.4.0', '1.4.1', '1.4.2', '1.4.3', '1.5.0', '1.5.1', '1.5.2', '1.5.3', '1.5.4', '1.5.5'],
+  },
   // `0.1.0-preview.0` and `0.1.0` are gone from `from` because their promotions
   // are finished: nothing active carries either, and the one place `0.1.0`
   // still appears is `firstPublicationTag`, which records the tag that first

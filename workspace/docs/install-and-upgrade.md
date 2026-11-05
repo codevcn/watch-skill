@@ -3,7 +3,7 @@
 Two products, two package managers, two upgrade stories. This page covers both
 and is honest about which parts have been exercised and which have not.
 
-> **What this page describes.** Watch Skill **1.4.3** and DeepWatch **0.1.4**,
+> **What this page describes.** Watch Skill **1.5.6** and DeepWatch **0.1.4**,
 > the versions this repository builds. Both ship to a registry — `watch-skill`
 > to PyPI, the twenty `@deepwatch` packages to npm — and the commands below have
 > been run against the registry rather than against a local build. For what is
@@ -155,7 +155,7 @@ and a patch will not. Pin with a tilde range (`~0.1.4`) if you want that
 enforced by your lockfile rather than by a changelog. The usual major-version
 promise starts at 1.0.
 
-Watch Skill is `1.4.3` and is on the 1.x line, where a minor release adds and a
+Watch Skill is `1.5.6` and is on the 1.x line, where a minor release adds and a
 major release is where a removal may happen. The Bridge protocol between them
 carries its own version and is negotiated at handshake; a Host and an engine
 that cannot agree fail closed and say so.

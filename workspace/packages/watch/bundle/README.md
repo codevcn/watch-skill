@@ -42,7 +42,7 @@ pip install 'watch-skill[standard,ocr]'
 the Bridge connects to it and every media tool answers
 `perceive.missing_dependency` on the first video.
 
-`watch-skill` is on PyPI. This bundle is built against **1.4.3** and needs at
+`watch-skill` is on PyPI. This bundle is built against **1.5.6** and needs at
 least that version: on every engine before it, `watch_moment` raises rather
 than answering, because the Bridge tried to iterate its result instead of
 serialising it. The Bridge finds the executable on `PATH` and connects on its

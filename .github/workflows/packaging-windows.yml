@@ -145,4 +145,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release upload ${{ github.ref_name }} ./dist/watch-skill-windows-x86_64.exe ./dist/watch-skill-installer.exe ./dist/watch-skill-uninstaller.exe ./dist/SHA256SUMS.txt --clobber
+          $files = @(
+            "./dist/watch-skill-windows-x86_64.exe",
+            "./dist/watch-skill-installer.exe",
+            "./dist/watch-skill-uninstaller.exe",
+            "./dist/SHA256SUMS.txt"
+          )
+          # Only create/publish release after all deterministic E2E installer & uninstaller tests pass
+          $rel = gh release view ${{ github.ref_name }} 2>$null
+          if (-not $rel) {
+            gh release create ${{ github.ref_name }} @files --title "${{ github.ref_name }} - Windows Installer, Uninstaller & CLI" --notes "Official Watch Core release ${{ github.ref_name }} with verified Windows Installer, Standalone Uninstaller, and Concurrency-Safe Update Checker."
+          } else {
+            gh release upload ${{ github.ref_name }} @files --clobber
+          }

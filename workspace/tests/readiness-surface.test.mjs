@@ -60,7 +60,7 @@ function health(overrides = {}) {
     requestId: 'req_test',
     phase: 'ready',
     blocker: 'connected',
-    coreVersion: '1.4.3',
+    coreVersion: '1.5.6',
     coreBuild: 'test',
     protocolVersion: 1,
     protocolMin: 1,

@@ -1,6 +1,6 @@
 """Non-blocking update checker for Watch Skill CLI.
 
-Checks for newer releases on GitHub in a background daemon thread, caching
+Checks for newer Core releases on GitHub in a background daemon thread, caching
 the result for 24 hours. Emits update notices exclusively to sys.stderr so
 machine-readable stdout (--json) is never polluted.
 
@@ -8,6 +8,7 @@ Guards:
 - WATCHSKILL_NO_UPDATE_CHECK=1 disables all update checks.
 - WATCHSKILL_OFFLINE=1 or settings.offline disables all outbound calls.
 - Timeout is strictly <= 2.5s.
+- Product-specific: filters releases list for core-v* tags to prevent crossed wires with DeepWatch.
 - Cross-process file locking prevents request storms on concurrent invocations.
 - Failure backoff updates checked_at to avoid hammering GitHub on rate limit/timeout.
 - All network and parsing errors are silently caught.
@@ -33,7 +34,7 @@ SCHEMA_VERSION = 1
 
 
 def extract_version_from_tag(tag: str) -> str:
-    """Extract clean semver string from tags like core-v1.5.5 or v1.5.5."""
+    """Extract clean semver string from tags like core-v1.5.6 or v1.5.6."""
     clean = tag.strip()
     if clean.startswith("core-v"):
         clean = clean[len("core-v"):]
@@ -112,12 +113,10 @@ def _acquire_lock(lock_path: Path) -> bool:
     """Acquire cross-process atomic lock file with stale recovery."""
     try:
         lock_path.parent.mkdir(parents=True, exist_ok=True)
-        # Check if lock exists and is stale
         if lock_path.is_file():
             try:
                 mtime = lock_path.stat().st_mtime
                 if (time.time() - mtime) > LOCK_STALE_SECONDS:
-                    # Lock is stale from crashed process, safe to unlink
                     lock_path.unlink(missing_ok=True)
             except OSError:
                 pass
@@ -139,13 +138,14 @@ def _release_lock(lock_path: Path) -> None:
 
 
 def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, existing_cache: dict[str, Any] | None) -> None:
-    """Background worker: fetch release from GitHub API, merge state, and update cache."""
+    """Background worker: fetch releases from GitHub API, filter for Core train, merge state, and update cache."""
     lock_path = cache_path.with_suffix(".lock")
     if not _acquire_lock(lock_path):
         return
 
     try:
-        url = f"https://api.github.com/repos/{repo}/releases/latest"
+        # Query recent releases to find the latest Watch Core release, isolating from DeepWatch
+        url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
         req = urllib.request.Request(
             url,
             headers={
@@ -165,7 +165,6 @@ def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, exi
                 raw = resp.read().decode("utf-8")
                 payload = json.loads(raw)
         except urllib.error.HTTPError:
-            # Re-read cache from disk to preserve any updates made by main thread
             fresh_cache = _read_cache(cache_path) or existing_cache or {}
             updated = dict(fresh_cache)
             updated["schema_version"] = SCHEMA_VERSION
@@ -173,7 +172,7 @@ def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, exi
             _write_cache(cache_path, updated)
             return
         except Exception:
-            # Failure backoff: update checked_at timestamp so subsequent commands don't storm
+            # Failure backoff: update checked_at timestamp so subsequent commands don't hammer
             fresh_cache = _read_cache(cache_path) or existing_cache or {}
             updated = dict(fresh_cache)
             updated["schema_version"] = SCHEMA_VERSION
@@ -181,9 +180,34 @@ def _fetch_latest_release(repo: str, current_version: str, cache_path: Path, exi
             _write_cache(cache_path, updated)
             return
 
-        raw_tag = payload.get("tag_name", "")
+        if not isinstance(payload, list):
+            return
+
+        # Product-specific release discovery: prioritize core-v* tags, fallback to legacy v*
+        latest_core_release = None
+        for rel in payload:
+            if rel.get("draft") or rel.get("prerelease"):
+                continue
+            tag = rel.get("tag_name", "")
+            if tag.startswith("core-v"):
+                latest_core_release = rel
+                break
+
+        if not latest_core_release:
+            for rel in payload:
+                if rel.get("draft") or rel.get("prerelease"):
+                    continue
+                tag = rel.get("tag_name", "")
+                if tag.startswith("core-v") or tag.startswith("v"):
+                    latest_core_release = rel
+                    break
+
+        if not latest_core_release:
+            return
+
+        raw_tag = latest_core_release.get("tag_name", "")
         clean_version = extract_version_from_tag(raw_tag)
-        release_url = payload.get("html_url", f"https://github.com/{repo}/releases/latest")
+        release_url = latest_core_release.get("html_url", f"https://github.com/{repo}/releases/tag/{raw_tag}")
 
         # Merge state: read the freshest disk cache to preserve last_notified_version
         fresh_cache = _read_cache(cache_path) or existing_cache or {}

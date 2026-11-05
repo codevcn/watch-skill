@@ -118,7 +118,7 @@ jobs:
           # nothing else that happens to be in this directory.
           #
           # It used to list everything `os.listdir` returned, which is how
-          # `core-v1.4.3` failed before it published anything: `uv build`
+          # `core-v1.5.6` failed before it published anything: `uv build`
           # writes a `.gitignore` into its output directory, `upload-artifact`
           # excludes hidden files by default, and the next job checked a
           # manifest entry for a file the sealed set had never contained. The

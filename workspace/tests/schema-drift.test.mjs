@@ -96,13 +96,13 @@ describe('the Bridge acting on drift', () => {
       send: () => Promise.resolve({
         ok: true,
         value: {
-          coreVersion: '1.4.3',
+          coreVersion: '1.5.6',
           coreBuild: null,
           protocolVersion: 1,
           capabilities: [{
             capabilityId: 'watch.verification.run',
             provider: 'watch-core',
-            providerVersion: '1.4.3',
+            providerVersion: '1.5.6',
             status: 'implemented',
             requirements: [],
             detected: {},

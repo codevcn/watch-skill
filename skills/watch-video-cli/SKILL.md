@@ -1,6 +1,6 @@
 ---
 name: watch-video-cli
-version: "1.5.5"
+version: "1.5.6"
 description: Complete guide for AI agents (Antigravity, Codex, Claude Code) to interact with watch-skill CLI executable. Covers automatic ffmpeg verification/installation, structured JSON input/output invocation (--json), frame-path visual reasoning, dense temporal inspection (moment), and secret/configuration management.
 license: MIT
 user-invocable: true
