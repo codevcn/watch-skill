@@ -264,6 +264,7 @@ resulting evidence, but the verdict comes from deterministic oracles. See
 | `batch.py` | playlist/folder/list → one indexed, cross-searchable memory; per-source resilience | `watch_batch()` |
 | `viewer.py` | one self-contained offline HTML page per analysis (frames inlined, evidence cited) | `generate_viewer()` |
 | `jobs/` | durable background jobs that survive the process that started them (MCP `background=true`) | `start_job()`, `get_job()` |
+| `update_engine/` | self-update engine: installation provenance detection, release discovery, SHA-256 verification, concurrency lock, Inno Setup and portable replacement strategies | `detect_installation()`, `fetch_latest_core_release()`, `run_update()` |
 | `watch.py` | the front door: acquire → perceive → transcribe with progress callbacks | `watch()` |
 | `config.py` | one typed settings object; `WATCHSKILL_*` env / `.env` / defaults | `get_settings()` |
 

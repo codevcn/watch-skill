@@ -400,6 +400,7 @@ More: **[architecture](docs/architecture.md)** · **[verification](docs/verifica
 | `list` | `watch-skill list [--json]` | Enumerate all indexed videos and recordings in local storage. |
 | `config` | `watch-skill config {get\|set\|list} [KEY] [VAL]` | Inspect and update configuration settings with automatic secret masking. |
 | `loop` | `watch-skill loop {start\|iterate\|status}` | Run the Observe → Critique → Fix → Verify visual agent loop. |
+| `update` | `watch-skill update [--check] [--dry-run] [--force] [--json]` | Perform end-to-end self-update with SHA-256 verification and rollback. |
 | `serve` | `watch-skill serve [--transport stdio\|sse]` | Launch the official MCP server (exposing all 39 tools). |
 
 ---

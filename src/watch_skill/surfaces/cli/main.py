@@ -2203,6 +2203,145 @@ def profiles_reset() -> None:
     print(f"reset {reset_profiles()} profile(s)")
 
 
+@app.command("update")
+def update_cmd(
+    check: bool = typer.Option(
+        False,
+        "--check",
+        help="Check for available updates without downloading or installing.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Simulate update plan and asset resolution without applying changes.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Reinstall or force update even if already on the target version.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as machine-readable JSON for AI agents.",
+    ),
+) -> None:
+    """Check for and apply self-updates to the Watch Skill installation."""
+    from watch_skill.errors import WatchSkillError
+    from watch_skill.update import run_update
+
+    # Reject ambiguous flag combinations as specified by Lead Architect (AC-10)
+    if check and dry_run:
+        err = WatchSkillError(
+            "--check and --dry-run cannot be combined. Choose either --check (lookup only) or --dry-run (plan simulation).",
+            code="update.invalid_arguments",
+            fix="Run `watch-skill update --check` or `watch-skill update --dry-run` separately.",
+        )
+        if json_output:
+            sys.stdout.write(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "ok": False,
+                        "error": {
+                            "code": err.code,
+                            "message": err.message,
+                            "fix": err.fix,
+                        },
+                    },
+                    indent=2,
+                )
+                + "\n"
+            )
+            sys.stdout.flush()
+            raise typer.Exit(code=1) from None
+        _console.print(f"[red]error:[/red] {err.message}")
+        raise typer.Exit(code=1) from None
+
+    if check and force:
+        err = WatchSkillError(
+            "--check and --force cannot be combined.",
+            code="update.invalid_arguments",
+            fix="Run `watch-skill update --check` without --force.",
+        )
+        if json_output:
+            sys.stdout.write(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "ok": False,
+                        "error": {
+                            "code": err.code,
+                            "message": err.message,
+                            "fix": err.fix,
+                        },
+                    },
+                    indent=2,
+                )
+                + "\n"
+            )
+            sys.stdout.flush()
+            raise typer.Exit(code=1) from None
+        _console.print(f"[red]error:[/red] {err.message}")
+        raise typer.Exit(code=1) from None
+
+    try:
+        result = run_update(check_only=check, dry_run=dry_run, force=force)
+    except WatchSkillError as exc:
+        if json_output:
+            payload = {
+                "schema_version": 1,
+                "ok": False,
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "fix": exc.fix,
+                },
+            }
+            sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+            sys.stdout.flush()
+            raise typer.Exit(code=1) from None
+        _console.print(f"[red]error [{exc.code}]:[/red] {exc.message}")
+        if exc.fix:
+            _console.print(f"[cyan]fix:[/cyan] {exc.fix}")
+        raise typer.Exit(code=1) from None
+    except Exception as exc:
+        err_msg = f"Unexpected failure during update: {exc}"
+        if json_output:
+            payload = {
+                "schema_version": 1,
+                "ok": False,
+                "error": {
+                    "code": "update.unexpected",
+                    "message": err_msg,
+                    "fix": "Retry running `watch-skill update` or visit https://github.com/codevcn/watch-skill/releases.",
+                },
+            }
+            sys.stdout.write(json.dumps(payload, indent=2) + "\n")
+            sys.stdout.flush()
+            raise typer.Exit(code=1) from None
+        _console.print(f"[red]error:[/red] {err_msg}")
+        raise typer.Exit(code=1) from None
+
+    if json_output:
+        sys.stdout.write(json.dumps(result.to_dict(), indent=2) + "\n")
+        sys.stdout.flush()
+        return
+
+    # Human-readable output formatting
+    if result.status.value == "up_to_date":
+        _console.print(f"[green]✓[/green] watch-skill is already up-to-date (version {result.current_version}).")
+    elif result.status.value == "available":
+        _console.print(f"[yellow]![/yellow] Update available: {result.current_version} -> {result.target_version}")
+        _console.print("Run [bold]watch-skill update[/bold] to install.")
+    elif result.status.value == "dry_run":
+        _console.print(f"[blue]ℹ[/blue] Dry run completed: target version {result.target_version} (strategy: {result.strategy}).")
+    elif result.status.value == "handoff_started":
+        _console.print("[green]✓[/green] Update downloaded and verified (SHA-256 ok). Handing off to installer...")
+    elif result.status.value == "updated":
+        _console.print(f"[green]✓[/green] Successfully updated to version {result.target_version}.")
+
+
 @app.command()
 def version() -> None:
     """Print the Watch Skill version."""

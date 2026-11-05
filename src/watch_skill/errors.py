@@ -114,3 +114,10 @@ class ConfigError(WatchSkillError):
     """Invalid or missing configuration."""
 
     default_code = "config.invalid"
+
+
+class UpdateError(WatchSkillError):
+    """Self-update operation failed."""
+
+    default_code = "update.failed"
+

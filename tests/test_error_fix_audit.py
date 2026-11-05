@@ -19,6 +19,7 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "watch_skill"
 ERROR_NAMES = {
     "WatchSkillError", "DependencyError", "AcquisitionError", "PerceptionError",
     "TranscriptionError", "IndexError_", "VisionError", "LoopError", "ConfigError",
+    "UpdateError",
     # v2 error surfaces. Listed here so the "every error says what to do"
     # invariant covers them too — an unlisted class is an unaudited one.
     "StaleContentError", "PolicyError", "IdentityError", "ContractError",

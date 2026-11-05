@@ -165,3 +165,20 @@ When a command fails (`exit_code != 0`), stdout returns a JSON error envelope:
    - `dependency.missing`: Inspect missing binary (e.g. `ffmpeg`) and run install commands.
    - `index.video_not_found`: Run `watch-skill watch <source> --json` first.
 2. Read `error.fix`: Follow the specific remediation recommendation provided in the fix field.
+
+---
+
+## 5. Automated Self-Update (update)
+
+AI agents can verify or upgrade the active watch-skill installation directly:
+
+```bash
+# Check if a newer version is available without mutating anything
+watch-skill update --check --json
+
+# Perform end-to-end self-update
+watch-skill update --json
+
+# Simulate update resolution without downloading or running installers
+watch-skill update --dry-run --json
+```
