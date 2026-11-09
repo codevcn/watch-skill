@@ -169,7 +169,7 @@ jobs:
       # had -- an accessibility suite that never executes is worse than none,
       # because the row is there and it is reassuring.
       - name: Node for the app fixtures
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '22.19.0'
           cache: npm
