@@ -42,8 +42,8 @@ const REPO = join(ROOT, '..')
 export const VERSIONS = {
   core: {
     name: 'Watch Skill',
-    to: '1.5.6',
-    from: ['1.4.0rc1', '1.4.0', '1.4.1', '1.4.2', '1.4.3', '1.5.0', '1.5.1', '1.5.2', '1.5.3', '1.5.4', '1.5.5'],
+    to: '1.5.7',
+    from: ['1.4.0rc1', '1.4.0', '1.4.1', '1.4.2', '1.4.3', '1.5.0', '1.5.1', '1.5.2', '1.5.3', '1.5.4', '1.5.5', '1.5.6'],
   },
   // `0.1.0-preview.0` and `0.1.0` are gone from `from` because their promotions
   // are finished: nothing active carries either, and the one place `0.1.0`

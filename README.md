@@ -21,8 +21,8 @@ produced it.
 
 **Distribution & Releases**
 
-[![Release](https://img.shields.io/github/v/release/codevcn/watch-skill?label=release%20(v1.5.6)&color=blue&logo=github)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)
-[![Windows Release](https://img.shields.io/badge/Windows-1--Click%20Installer%20%26%20Standalone-0078D6?logo=windows&logoColor=white)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)
+[![Release](https://img.shields.io/github/v/release/codevcn/watch-skill?label=release%20(v1.5.7)&color=blue&logo=github)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.7)
+[![Windows Release](https://img.shields.io/badge/Windows-1--Click%20Installer%20%26%20Standalone-0078D6?logo=windows&logoColor=white)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.7)
 [![License](https://img.shields.io/github/license/codevcn/watch-skill)](LICENSE)
 
 **Python · PyPI**
@@ -223,7 +223,7 @@ The standalone Windows executable and CLI feature an intelligent, non-blocking b
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  A new version of watch-skill is available: 1.5.6 -> 1.6.0   │
+│  A new version of watch-skill is available: 1.5.7 -> 1.6.0   │
 │  Download installer: https://github.com/codevcn/watch-skill  │
 └──────────────────────────────────────────────────────────────┘
 ```

@@ -64,7 +64,7 @@ function capability(capabilityId, status, extra = {}) {
   return {
     capabilityId,
     provider: 'watch-core',
-    providerVersion: '1.5.6',
+    providerVersion: '1.5.7',
     status,
     requirements: [],
     detected: {},
@@ -115,7 +115,7 @@ function evidenceRecord(evidenceId, modality, overrides = {}) {
     modality,
     provenance: 'observation',
     producer: 'watch-core',
-    producerVersion: '1.5.6',
+    producerVersion: '1.5.7',
     captureQuality: null,
     gaps: [],
     freshness: 'current',
