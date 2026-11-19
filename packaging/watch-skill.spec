@@ -38,6 +38,13 @@ hiddenimports = [
     "watch_skill.surfaces.cli.envelope",
     "watch_skill.surfaces.cli.main",
     "watch_skill.config",
+    "watch_skill.errors",
+    "watch_skill.policy",
+    "watch_skill.report",
+    "watch_skill.sqlite_util",
+    "watch_skill.update",
+    "watch_skill.update_check",
+    "watch_skill.update_engine",
     "watch_skill.watch",
     "watch_skill.perceive",
     "watch_skill.index",
@@ -46,11 +53,22 @@ hiddenimports = [
     "watch_skill.perceive.budget",
     "watch_skill.perceive.ocr",
     "watch_skill.perceive.scenes",
-    "watch_skill.perceive.transcribe",
+    "watch_skill.transcribe",
+    "watch_skill.transcribe.audio",
+    "watch_skill.transcribe.ladder",
+    "watch_skill.transcribe.types",
+    "watch_skill.transcribe.vtt",
+    "watch_skill.health.agents_setup",
     "watch_skill.health.binaries",
+    "watch_skill.health.clean",
+    "watch_skill.health.doctor",
+    "watch_skill.health.log",
     "watch_skill.health.vision_setup",
     "watch_skill.vision",
     "watch_skill.vision.registry",
+    "certifi",
+    "packaging",
+    "packaging.version",
     "sqlite3",
     "PIL",
     "cv2",
@@ -61,6 +79,7 @@ hiddenimports = [
 ]
 
 # Add targeted submodules
+hiddenimports += collect_submodules("watch_skill.update_engine")
 hiddenimports += [m for m in collect_submodules("rapidocr") if "tensorrt" not in m]
 hiddenimports += collect_submodules("fastembed")
 hiddenimports += collect_submodules("scenedetect")
@@ -87,21 +106,27 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
-    name="watch-skill-windows-x86_64",
+    exclude_binaries=True,
+    name="watch-skill",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="watch-skill",
 )

@@ -114,38 +114,41 @@ and shows where their verdicts diverged.
 
 ## Start here
 
-Five entry paths. Pick the row that describes your environment.
+Four entry paths. Pick the row that describes your environment.
 
 | You have | You want | Recommended path |
 | --- | --- | --- |
-| **Windows (Zero Python/Node)** | 1-Click native installation & updates | [Windows 1-Click Installer](#windows-1-click-installer--standalone-binaries) |
-| **Windows Portable** | Single `.exe` without installation | [Standalone Binary Release](#windows-1-click-installer--standalone-binaries) |
+| **Windows (Zero Python/Node)** | 1-Click native installation & updates | [Windows 1-Click Installer](#windows-1-click-installer) |
 | **AI Agent (Antigravity, Claude Code, Cursor, Codex)** | Pair-programming skill & CLI envelope | [AI Agent Integration](#ai-agent-integration--protocol) |
 | **Python 3.11, 3.12 or 3.13** | Core engine CLI, MCP server, REST API | [Python & CLI Quickstart](#python--cross-platform-cli) |
 | **Complete Agent Workspace** | DeepSeek Harness with visual verification | [DeepWatch Workspace](#the-deepwatch-workspace) |
 
 ---
 
-## Windows 1-Click Installer & Standalone Binaries
+## Windows 1-Click Installer
 
-For zero-dependency deployment on Windows, download precompiled binaries from the **[v1.5.6 Release](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.6)**:
+For zero-dependency deployment on Windows, download the installer from **[GitHub Releases](https://github.com/codevcn/watch-skill/releases)** (latest `core-v*` release):
 
-| Asset | Type | Size | Description & Checksum (SHA-256) |
-|---|---|---|---|
-| **[`watch-skill-installer.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-installer.exe)** | Setup Wizard | ~24.4 MB | **Recommended.** Installs to `%LOCALAPPDATA%\Programs\watch-skill`, sets User `PATH`, registers Windows Uninstaller.<br>`a43dd9e28b4c713a479a037b581c47b3c3878ae24b6ddbb9a9a606c4ed521afe` |
-| **[`watch-skill-windows-x86_64.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-windows-x86_64.exe)** | Portable Binary | ~28.4 MB | Standalone portable executable. Copy anywhere and run directly.<br>`ef2b5ee8427f22c95acdfc3436fa4799eca735896804c1b4479305d9c90887f1` |
-| **[`watch-skill-uninstaller.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-uninstaller.exe)** | Clean Uninstaller | ~4.8 MB | Removes binary, cleans `PATH`, and deletes cache/logs.<br>`38bf067439263aa5b2226f0a84fd704211fcb63a1b58b8b7a927ff6e0c039b4f` |
-| **[`SHA256SUMS.txt`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/SHA256SUMS.txt)** | Verification | ~300 B | Cryptographic checksums for asset integrity verification. |
+| Asset | Type | Description |
+|---|---|---|
+| `watch-skill-installer.exe` | Setup Wizard | **Recommended.** Installs `watch-skill.exe` and its runtime (`_internal/`) to `%LOCALAPPDATA%\Programs\watch-skill`, sets User `PATH`, and registers Windows Uninstaller. |
+| `watch-skill-uninstaller.exe` | Clean Uninstaller | Removes the application directory (including `_internal/`), cleans User `PATH`, and removes managed skills. |
+| `SHA256SUMS.txt` | Verification | Cryptographic SHA-256 checksums for asset integrity verification. |
 
 ### 1-Click Installation Steps
 
-1. Download **[`watch-skill-installer.exe`](https://github.com/codevcn/watch-skill/releases/download/core-v1.5.6/watch-skill-installer.exe)**.
+1. Download `watch-skill-installer.exe` from the latest `core-v*` release on **[GitHub Releases](https://github.com/codevcn/watch-skill/releases)** (and verify against `SHA256SUMS.txt`).
 2. Double-click to run (no administrator rights required).
 3. Open a new PowerShell terminal and verify:
    ```powershell
    watch-skill --version
    watch-skill doctor --json
    ```
+
+To upgrade an existing installation later, run:
+```powershell
+watch-skill update
+```
 
 ### Clean Uninstallation
 
@@ -494,14 +497,15 @@ node --test workspace/tests/pending-release-claims.test.mjs workspace/tests/rele
 
 ### Packaging Windows Executables
 
-To build standalone Windows binaries and installers locally:
+To build the Windows `onedir` distribution and Inno Setup installers locally:
 
 ```powershell
-# Build standalone single-file binary using PyInstaller
-uv run pyinstaller packaging/pyinstaller/watch-skill.spec
+# Build onedir distribution (dist/watch-skill/) using PyInstaller
+uv run pyinstaller --clean packaging/watch-skill.spec
 
-# Build 1-Click Installer and Uninstaller using Inno Setup
-iscc packaging/inno/watch-skill-installer.iss
+# Build 1-Click Installer and Standalone Uninstaller using Inno Setup
+iscc packaging/windows/watch-skill-installer.iss
+iscc packaging/windows/watch-skill-uninstaller.iss
 ```
 
 ---

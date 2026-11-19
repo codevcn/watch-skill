@@ -15,8 +15,8 @@ from watch_skill.update_engine.strategies import get_strategy
 def check_update(repo: str = DEFAULT_REPO) -> UpdateResult:
     """Perform a fresh, authoritative update check without mutating anything."""
     info = detect_installation()
-    release = fetch_latest_core_release(repo=repo)
     strategy = get_strategy(info)
+    release = fetch_latest_core_release(repo=repo)
     plan = strategy.plan(release, force=False)
 
     if plan.update_available:
@@ -46,8 +46,8 @@ def check_update(repo: str = DEFAULT_REPO) -> UpdateResult:
 def plan_update(repo: str = DEFAULT_REPO, force: bool = False) -> UpdatePlan:
     """Generate an authoritative update plan without executing it."""
     info = detect_installation()
-    release = fetch_latest_core_release(repo=repo)
     strategy = get_strategy(info)
+    release = fetch_latest_core_release(repo=repo)
     return strategy.plan(release, force=force)
 
 
@@ -62,10 +62,10 @@ def run_update(
         return check_update(repo=repo)
 
     info = detect_installation()
+    strategy = get_strategy(info)
     # Concurrency lock covers release fetch, download, verification, and handoff
     with UpdateLock(target_version="pending"):
         release = fetch_latest_core_release(repo=repo)
-        strategy = get_strategy(info)
         plan = strategy.plan(release, force=force)
 
         if not plan.update_available and not force:

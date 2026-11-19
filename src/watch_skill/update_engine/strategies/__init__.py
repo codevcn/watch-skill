@@ -6,15 +6,12 @@ from watch_skill.update_engine.models import InstallationInfo, InstallKind
 from watch_skill.update_engine.strategies.base import UpdateStrategy
 from watch_skill.update_engine.strategies.python_env import PythonEnvStrategy
 from watch_skill.update_engine.strategies.windows_inno import WindowsInnoStrategy
-from watch_skill.update_engine.strategies.windows_portable import WindowsPortableStrategy
 
 
 def get_strategy(info: InstallationInfo) -> UpdateStrategy:
     """Select the appropriate update strategy based on verified installation provenance."""
     if info.kind == InstallKind.WINDOWS_INNO:
         return WindowsInnoStrategy(info)
-    if info.kind == InstallKind.WINDOWS_PORTABLE:
-        return WindowsPortableStrategy(info)
     if info.kind in {
         InstallKind.EDITABLE_SOURCE,
         InstallKind.UVX_EPHEMERAL,
@@ -25,8 +22,15 @@ def get_strategy(info: InstallationInfo) -> UpdateStrategy:
     }:
         return PythonEnvStrategy(info)
 
+    if info.metadata.get("frozen"):
+        raise UpdateError(
+            "This frozen Watch Skill binary is not managed by the Windows Inno Setup installer and cannot self-update.",
+            code="update.unsupported_environment",
+            fix="Install Watch Skill using `watch-skill-installer.exe` from https://github.com/codevcn/watch-skill/releases.",
+        )
+
     raise UpdateError(
         f"Cannot determine update strategy for installation kind: '{info.kind.value}'.",
         code="update.unsupported_environment",
-        fix="Download the precompiled Windows installer from https://github.com/codevcn/watch-skill/releases.",
+        fix="Install Watch Skill using `watch-skill-installer.exe` from https://github.com/codevcn/watch-skill/releases.",
     )

@@ -26,6 +26,7 @@ from watch_skill.update_engine.models import (
     UpdateStatus,
 )
 from watch_skill.update_engine.releases import fetch_latest_core_release
+from watch_skill.update_engine.strategies import get_strategy
 from watch_skill.update_engine.strategies.python_env import PythonEnvStrategy
 from watch_skill.update_engine.strategies.windows_inno import WindowsInnoStrategy
 
@@ -39,11 +40,11 @@ def test_parse_sha256sums_valid() -> None:
     text = (
         "# Release Checksums\n"
         "a43dd9e28b4c713a479a037b581c47b3c3878ae24b6ddbb9a9a606c4ed521afe  watch-skill-installer.exe\n"
-        "ef2b5ee8427f22c95acdfc3436fa4799eca735896804c1b4479305d9c90887f1 *watch-skill-windows-x86_64.exe\n"
+        "38bf067439263aa5b2226f0a84fd704211fcb63a1b58b8b7a927ff6e0c039b4f *watch-skill-uninstaller.exe\n"
     )
     res = parse_sha256sums(text)
     assert res["watch-skill-installer.exe"] == "a43dd9e28b4c713a479a037b581c47b3c3878ae24b6ddbb9a9a606c4ed521afe"
-    assert res["watch-skill-windows-x86_64.exe"] == "ef2b5ee8427f22c95acdfc3436fa4799eca735896804c1b4479305d9c90887f1"
+    assert res["watch-skill-uninstaller.exe"] == "38bf067439263aa5b2226f0a84fd704211fcb63a1b58b8b7a927ff6e0c039b4f"
 
 
 def test_file_sha256_verification(tmp_path: Path) -> None:
@@ -80,14 +81,60 @@ def test_detect_inno_with_legacy_heuristic(tmp_path: Path) -> None:
     assert info.kind == InstallKind.WINDOWS_INNO
 
 
-def test_detect_portable_when_frozen_without_inno(tmp_path: Path) -> None:
-    portable_dir = tmp_path / "Downloads"
-    portable_dir.mkdir(parents=True)
-    exe = portable_dir / "watch-skill.exe"
+def test_detect_inno_onedir_with_unins000(tmp_path: Path) -> None:
+    prog_dir = tmp_path / "CustomInstall"
+    prog_dir.mkdir(parents=True)
+    (prog_dir / "_internal").mkdir()
+    exe = prog_dir / "watch-skill.exe"
+    exe.write_text("", encoding="utf-8")
+    (prog_dir / "unins000.exe").write_text("", encoding="utf-8")
+
+    info = detect_installation(executable_override=exe, sys_frozen_override=True)
+    assert info.kind == InstallKind.WINDOWS_INNO
+    assert isinstance(get_strategy(info), WindowsInnoStrategy)
+
+
+def test_detect_unmanaged_frozen_without_inno_rejected(tmp_path: Path) -> None:
+    unmanaged_dir = tmp_path / "Downloads"
+    unmanaged_dir.mkdir(parents=True)
+    exe = unmanaged_dir / "watch-skill.exe"
     exe.write_text("", encoding="utf-8")
 
     info = detect_installation(executable_override=exe, sys_frozen_override=True)
-    assert info.kind == InstallKind.WINDOWS_PORTABLE
+    assert info.kind == InstallKind.UNKNOWN
+    assert info.metadata.get("frozen") is True
+
+    with pytest.raises(UpdateError) as exc_info:
+        get_strategy(info)
+
+    assert exc_info.value.code == "update.unsupported_environment"
+    assert "watch-skill-installer.exe" in (exc_info.value.fix or "")
+
+
+def test_run_update_unmanaged_frozen_errors_with_fix(tmp_path: Path) -> None:
+    from watch_skill.update import check_update, run_update
+
+    exe = tmp_path / "Downloads" / "watch-skill.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("", encoding="utf-8")
+    unmanaged = InstallationInfo(
+        kind=InstallKind.UNKNOWN,
+        executable_path=exe,
+        version="1.5.6",
+        install_dir=exe.parent,
+        metadata={"frozen": True},
+    )
+
+    with patch("watch_skill.update.detect_installation", return_value=unmanaged):
+        with pytest.raises(UpdateError) as check_exc:
+            check_update()
+        assert check_exc.value.code == "update.unsupported_environment"
+        assert "watch-skill-installer.exe" in (check_exc.value.fix or "")
+
+        with pytest.raises(UpdateError) as run_exc:
+            run_update()
+        assert run_exc.value.code == "update.unsupported_environment"
+        assert "watch-skill-installer.exe" in (run_exc.value.fix or "")
 
 
 def test_detect_editable_source(tmp_path: Path) -> None:
@@ -126,9 +173,9 @@ SAMPLE_RELEASES = [
                 "size": 25000000,
             },
             {
-                "name": "watch-skill-windows-x86_64.exe",
-                "browser_download_url": "https://github.com/codevcn/watch-skill/releases/download/core-v1.6.0/watch-skill-windows-x86_64.exe",
-                "size": 29000000,
+                "name": "watch-skill-uninstaller.exe",
+                "browser_download_url": "https://github.com/codevcn/watch-skill/releases/download/core-v1.6.0/watch-skill-uninstaller.exe",
+                "size": 5000000,
             },
             {
                 "name": "SHA256SUMS.txt",
@@ -148,7 +195,7 @@ SAMPLE_RELEASES = [
 
 SAMPLE_CHECKSUMS = (
     "1111111111111111111111111111111111111111111111111111111111111111  watch-skill-installer.exe\n"
-    "2222222222222222222222222222222222222222222222222222222222222222  watch-skill-windows-x86_64.exe\n"
+    "2222222222222222222222222222222222222222222222222222222222222222  watch-skill-uninstaller.exe\n"
 )
 
 

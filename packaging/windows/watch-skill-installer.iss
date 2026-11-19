@@ -23,10 +23,16 @@ ChangesEnvironment=yes
 Uninstallable=yes
 UninstallDisplayName=Watch Skill
 UninstallDisplayIcon={app}\watch-skill.exe
+CloseApplications=force
+CloseApplicationsFilter=*.exe,*.dll,*.pyd
+RestartApplications=no
 WizardStyle=modern
 
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Files]
-Source: "..\..\dist\watch-skill-windows-x86_64.exe"; DestDir: "{app}"; DestName: "watch-skill.exe"; Flags: ignoreversion
+Source: "..\..\dist\watch-skill\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 Source: "..\..\skills\watch-video-cli\SKILL.md"; DestName: "watch-video-cli-SKILL.md"; Flags: dontcopy
 
 #include "common.iss"

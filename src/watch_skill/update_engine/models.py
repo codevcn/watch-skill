@@ -11,7 +11,6 @@ class InstallKind(StrEnum):
     """The detected packaging/environment kind."""
 
     WINDOWS_INNO = "windows_inno"
-    WINDOWS_PORTABLE = "windows_portable"
     PIPX = "pipx"
     UV_TOOL = "uv_tool"
     VENV_PIP = "venv_pip"

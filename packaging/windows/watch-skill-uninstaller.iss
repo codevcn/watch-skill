@@ -25,10 +25,17 @@ WizardStyle=modern
 [Code]
 function InitializeSetup(): Boolean;
 var
-  RegKey, UninstStr, AppDir, GeminiSkillDir, ClaudeSkillDir: string;
+  RegKey, UninstStr, AppDir, InternalDir, GeminiSkillDir, ClaudeSkillDir: string;
   ResultCode: Integer;
 begin
   RegKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + WATCHSKILL_APP_ID + '_is1';
+
+  // Resolve installed directory from uninstall registry key before removing it
+  if not RegQueryStringValue(HKCU, RegKey, 'InstallLocation', AppDir) then
+    AppDir := '';
+  AppDir := NormalizePath(AppDir);
+  if AppDir = '' then
+    AppDir := ExpandConstant('{localappdata}\Programs\watch-skill');
 
   // 1. Try to invoke the standard uninstaller silently if present
   if RegQueryStringValue(HKCU, RegKey, 'QuietUninstallString', UninstStr) then
@@ -41,13 +48,19 @@ begin
   end;
 
   // 2. Residual cleanup (idempotent, safe fallback)
-  AppDir := ExpandConstant('{localappdata}\Programs\watch-skill');
   RemovePathEntry(AppDir);
 
   GeminiSkillDir := ExpandConstant('{%USERPROFILE}\.gemini\config\skills\watch-video-cli');
   ClaudeSkillDir := ExpandConstant('{%USERPROFILE}\.claude\skills\watch-video-cli');
   RemoveManagedSkill(GeminiSkillDir);
   RemoveManagedSkill(ClaudeSkillDir);
+
+  // Thoroughly remove PyInstaller onedir _internal runtime before deleting AppDir
+  InternalDir := AddBackslash(AppDir) + '_internal';
+  if DirExists(InternalDir) then
+  begin
+    DelTree(InternalDir, True, True, True);
+  end;
 
   // Clean remaining files in AppDir if standard uninstaller missed them
   if DirExists(AppDir) then

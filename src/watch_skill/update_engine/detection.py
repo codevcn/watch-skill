@@ -10,6 +10,13 @@ from watch_skill.update_engine.models import InstallationInfo, InstallKind
 
 def _get_current_version() -> str:
     try:
+        from watch_skill import __version__
+
+        if __version__ and not __version__.startswith("0.0.0"):
+            return __version__
+    except Exception:
+        pass
+    try:
         from watch_skill._version import __version__
 
         return __version__
@@ -70,13 +77,13 @@ def detect_installation(
                 metadata={"inno_heuristic": True, "uninstaller_exists": uninstaller_exists},
             )
 
-        # Standalone portable binary
+        # Unmanaged frozen binary (standalone portable binaries are not supported)
         return InstallationInfo(
-            kind=InstallKind.WINDOWS_PORTABLE,
+            kind=InstallKind.UNKNOWN,
             executable_path=exe_path,
             version=version,
             install_dir=install_dir,
-            metadata={"portable": True},
+            metadata={"frozen": True},
         )
 
     # 2. Python environment detection
