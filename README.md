@@ -7,10 +7,6 @@
 
 **Give AI agents eyes, ears, and verifiable results.**
 
-<br>
-
-<img src="docs/assets/watch-skill-hero.webp" alt="Watch Skill: a pixel-art scene of the Watch Skill mascot watching a screen. A filmstrip above shows the four stages — watch a source, remember it as OCR and transcript, resolve timestamped evidence, then run THE LOOP to critique and fix. The screen shows a video library, an evidence list with timestamps, and a capture-critique-fix-verify cycle ending in VERIFIED." width="760">
-
 **Watch Skill** turns video, audio and screen activity into searchable,
 timestamped evidence, and answers *did that actually work?* with a
 deterministic contract rather than a model's opinion. Available as a zero-dependency
