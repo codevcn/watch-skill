@@ -19,7 +19,7 @@ Expected result:
 ```text
 indexed: ...
 answer: Evidence:
-- [00:01] (ocr) RELEASE 1.5.7
+- [00:01] (ocr) RELEASE 1.5.8
 cloud calls allowed: no
 ```
 

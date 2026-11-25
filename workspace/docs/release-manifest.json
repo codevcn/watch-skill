@@ -10,7 +10,7 @@
   },
   "compatibility": {
     "deepseekHarness": "0.1.1-rc.2 @ b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
-    "watchCore": "watch-skill 1.5.7, Bridge protocol 1",
+    "watchCore": "watch-skill 1.5.8, Bridge protocol 1",
     "bridgeProtocol": {
       "min": 1,
       "max": 1
@@ -66,7 +66,7 @@
       {
         "name": "@deepwatch/dsh-bundle",
         "version": "0.1.4",
-        "integrity": "sha256:c3fd74efd32fe235eadd494cb20ee8867ca86494e4616d92b3a0fb8adb19f427",
+        "integrity": "sha256:8b34d742cbbef0a563bc43fe8c70e14f96abbeab1749dca772dbb785de387645",
         "sourceFiles": 7
       },
       {
@@ -189,7 +189,7 @@
       "creators": [
         "Tool: watch-gen-release-manifest"
       ],
-      "created": "2026-11-19T15:00:36Z"
+      "created": "2026-11-25T10:01:05Z"
     },
     "packages": [
       {
@@ -236,7 +236,7 @@
         "checksums": [
           {
             "algorithm": "SHA256",
-            "checksumValue": "c3fd74efd32fe235eadd494cb20ee8867ca86494e4616d92b3a0fb8adb19f427"
+            "checksumValue": "8b34d742cbbef0a563bc43fe8c70e14f96abbeab1749dca772dbb785de387645"
           }
         ]
       },

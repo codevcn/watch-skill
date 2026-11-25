@@ -1,6 +1,6 @@
 ---
 name: watch-video-extra
-version: "1.5.7"
+version: "1.5.8"
 description: MCP-first deep video analysis and verification workflow using Watch Skill (`watch-skill serve`). Indexes local videos or URLs once, retrieves transcript/OCR/frames with strict visual-evidence discipline, prioritizes explicit timestamps via get_moment, and falls back to the Watch Skill CLI for doctor, config, setup, and self-update.
 argument-hint: "<video-url-or-path> [question]"
 license: MIT

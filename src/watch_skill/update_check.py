@@ -34,7 +34,7 @@ SCHEMA_VERSION = 1
 
 
 def extract_version_from_tag(tag: str) -> str:
-    """Extract clean semver string from tags like core-v1.5.7 or v1.5.6."""
+    """Extract clean semver string from tags like core-v1.5.8 or v1.5.6."""
     clean = tag.strip()
     if clean.startswith("core-v"):
         clean = clean[len("core-v"):]
