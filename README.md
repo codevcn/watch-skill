@@ -131,14 +131,14 @@ For zero-dependency deployment on Windows, download the installer from **[GitHub
 
 | Asset | Type | Description |
 |---|---|---|
-| `watch-skill-installer.exe` | Setup Wizard | **Recommended.** Installs `watch-skill.exe` (MCP server `watch-skill serve` + maintenance CLI) and `_internal/` to `%LOCALAPPDATA%\Programs\watch-skill`, deploys agent skills (`watch-video-extra` & `watch-video-cli`), registers MCP servers, sets User `PATH`, and registers Windows Uninstaller. |
+| `watch-skill-installer.exe` | Setup Wizard | **Recommended.** Installs `watch-skill.exe` (MCP server `watch-skill serve` + maintenance CLI) and `_internal/` to `%LOCALAPPDATA%\Programs\watch-skill`, deploys the MCP-first agent skill (`watch-video-extra`), registers MCP servers, sets User `PATH`, and registers Windows Uninstaller. |
 | `watch-skill-uninstaller.exe` | Clean Uninstaller | Removes the application directory (including `_internal/`), cleans User `PATH`, and removes managed skills. |
 | `SHA256SUMS.txt` | Verification | Cryptographic SHA-256 checksums for asset integrity verification. |
 
 ### 1-Click Installation Steps
 
 1. Download `watch-skill-installer.exe` from the latest `core-v*` release on **[GitHub Releases](https://github.com/codevcn/watch-skill/releases)** (and verify against `SHA256SUMS.txt`).
-2. Double-click to run (no administrator rights required). The installer bundles the MCP server (`watch-skill serve`, 39 tools) and deploys both `/watch-video-extra` (MCP-first analysis) and `/watch-video-cli` (CLI reference).
+2. Double-click to run (no administrator rights required). The installer bundles the MCP server (`watch-skill serve`, 39 tools) and deploys `/watch-video-extra` (MCP-first analysis).
 3. Open a new PowerShell terminal and verify:
    ```powershell
    watch-skill --version
@@ -182,22 +182,18 @@ You can remove `watch-skill` cleanly at any time through **Windows Settings → 
 
 </div>
 
-### Installing the Agent Skills
+### Installing the Agent Skill
 
-Watch Skill ships both **MCP-first** ([`skills/watch-video-extra/SKILL.md`](skills/watch-video-extra/SKILL.md), recommended for Antigravity and MCP hosts) and **CLI-first** ([`skills/watch-video-cli/SKILL.md`](skills/watch-video-cli/SKILL.md)) workflows. Copy either to your agent's skill directory (the Windows installer deploys both automatically):
+Watch Skill ships the **MCP-first** [`skills/watch-video-extra/SKILL.md`](skills/watch-video-extra/SKILL.md) skill (automatically deployed by the Windows installer for Antigravity and Claude Code; headless CLI-only hosts can optionally copy [`skills/watch-video-cli/SKILL.md`](skills/watch-video-cli/SKILL.md)):
 
 ```powershell
 # For Antigravity (Google DeepMind) — MCP-first + CLI maintenance
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\config\skills\watch-video-extra"
 Copy-Item "skills\watch-video-extra\SKILL.md" "$env:USERPROFILE\.gemini\config\skills\watch-video-extra\"
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\config\skills\watch-video-cli"
-Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.gemini\config\skills\watch-video-cli\"
 
 # For Claude Code
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\watch-video-extra"
 Copy-Item "skills\watch-video-extra\SKILL.md" "$env:USERPROFILE\.claude\skills\watch-video-extra\"
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\watch-video-cli"
-Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.claude\skills\watch-video-cli\"
 ```
 
 Or install all ten skills across 25+ agents simultaneously:

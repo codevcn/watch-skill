@@ -100,10 +100,15 @@ jobs:
       - name: E2E Test Installer and Standalone Uninstaller
         shell: pwsh
         run: |
-          # 0. Setup pre-existing unmanaged skill in Claude to verify ownership invariant
+          # 0. Setup pre-existing unmanaged skill in Claude (no marker) + stale managed 1.5.9 watch-video-cli in Gemini
           $claudeSkillDir = "$env:USERPROFILE\.claude\skills\watch-video-cli"
           New-Item -ItemType Directory -Force -Path $claudeSkillDir | Out-Null
           "user sentinel unmanaged skill content" | Set-Content (Join-Path $claudeSkillDir "SKILL.md") -NoNewline
+
+          $legacyManagedCli = "$env:USERPROFILE\.gemini\config\skills\watch-video-cli"
+          New-Item -ItemType Directory -Force -Path $legacyManagedCli | Out-Null
+          "legacy managed cli" | Set-Content (Join-Path $legacyManagedCli "SKILL.md") -NoNewline
+          "managed-by-watch-skill" | Set-Content (Join-Path $legacyManagedCli ".watch-skill-managed") -NoNewline
 
           # 1. Test Silent Installation
           Start-Process -FilePath "./dist/watch-skill-installer.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait
@@ -127,11 +132,12 @@ jobs:
           $regPath = (Get-ItemProperty -Path 'HKCU:\Environment' -Name Path).Path
           if (-not $regPath.Contains("watch-skill")) { throw "PATH not updated in HKCU Environment" }
 
-          # Verify Gemini managed skills are deployed (both watch-video-extra and watch-video-cli)
+          # Verify only watch-video-extra is deployed and stale managed watch-video-cli was cleaned up
           $geminiExtraMarker = "$env:USERPROFILE\.gemini\config\skills\watch-video-extra\.watch-skill-managed"
           if (-not (Test-Path $geminiExtraMarker)) { throw "Gemini watch-video-extra skill marker missing" }
-          $geminiCliMarker = "$env:USERPROFILE\.gemini\config\skills\watch-video-cli\.watch-skill-managed"
-          if (-not (Test-Path $geminiCliMarker)) { throw "Gemini watch-video-cli skill marker missing" }
+          $claudeExtraMarker = "$env:USERPROFILE\.claude\skills\watch-video-extra\.watch-skill-managed"
+          if (-not (Test-Path $claudeExtraMarker)) { throw "Claude watch-video-extra skill marker missing" }
+          if (Test-Path $legacyManagedCli) { throw "Managed watch-video-cli should not be deployed by MCP-only installer" }
 
           # Verify Claude pre-existing unmanaged skill was NOT corrupted or marked
           $claudeMarker = Join-Path $claudeSkillDir ".watch-skill-managed"
