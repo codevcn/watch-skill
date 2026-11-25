@@ -29,10 +29,10 @@ def _get_current_version() -> str:
         pyproject = root / "pyproject.toml"
         if pyproject.is_file():
             data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-            return str(data.get("project", {}).get("version", "1.5.10"))
+            return str(data.get("project", {}).get("version", "1.5.11"))
     except Exception:
         pass
-    return "1.5.10"
+    return "1.5.11"
 
 
 def detect_installation(

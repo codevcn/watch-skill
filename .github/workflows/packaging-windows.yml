@@ -100,7 +100,7 @@ jobs:
       - name: E2E Test Installer and Standalone Uninstaller
         shell: pwsh
         run: |
-          # 0. Setup pre-existing unmanaged skill in Claude (no marker) + stale managed 1.5.10 watch-video-cli in Gemini
+          # 0. Setup pre-existing unmanaged skill in Claude (no marker) + stale managed 1.5.11 watch-video-cli in Gemini
           $claudeSkillDir = "$env:USERPROFILE\.claude\skills\watch-video-cli"
           New-Item -ItemType Directory -Force -Path $claudeSkillDir | Out-Null
           "user sentinel unmanaged skill content" | Set-Content (Join-Path $claudeSkillDir "SKILL.md") -NoNewline

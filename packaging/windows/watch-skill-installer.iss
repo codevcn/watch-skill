@@ -1,6 +1,6 @@
 ; Inno Setup script for Watch Skill Windows Installer
 #ifndef MyAppVersion
-#define MyAppVersion "1.5.10"
+#define MyAppVersion "1.5.11"
 #endif
 
 [Setup]
