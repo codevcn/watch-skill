@@ -1,6 +1,6 @@
 ; Inno Setup script for Standalone Watch Skill Uninstaller
 #ifndef MyAppVersion
-#define MyAppVersion "1.5.9"
+#define MyAppVersion "1.5.10"
 #endif
 
 [Setup]

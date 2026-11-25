@@ -63,7 +63,7 @@ def test_detect_inno_with_marker(tmp_path: Path) -> None:
     exe = tmp_path / "watch-skill.exe"
     exe.write_text("", encoding="utf-8")
     marker = tmp_path / ".watch-skill-install.json"
-    marker.write_text('{"install_kind": "windows_inno", "version": "1.5.9"}', encoding="utf-8")
+    marker.write_text('{"install_kind": "windows_inno", "version": "1.5.10"}', encoding="utf-8")
 
     info = detect_installation(executable_override=exe, sys_frozen_override=True)
     assert info.kind == InstallKind.WINDOWS_INNO
@@ -120,7 +120,7 @@ def test_run_update_unmanaged_frozen_errors_with_fix(tmp_path: Path) -> None:
     unmanaged = InstallationInfo(
         kind=InstallKind.UNKNOWN,
         executable_path=exe,
-        version="1.5.9",
+        version="1.5.10",
         install_dir=exe.parent,
         metadata={"frozen": True},
     )
@@ -185,7 +185,7 @@ SAMPLE_RELEASES = [
         ],
     },
     {
-        "tag_name": "core-v1.5.9",
+        "tag_name": "core-v1.5.10",
         "draft": False,
         "prerelease": False,
         "published_at": "2026-10-25T10:00:00Z",
@@ -229,7 +229,7 @@ def test_inno_strategy_planning(tmp_path: Path) -> None:
     info = InstallationInfo(
         kind=InstallKind.WINDOWS_INNO,
         executable_path=tmp_path / "watch-skill.exe",
-        version="1.5.9",
+        version="1.5.10",
     )
     strat = WindowsInnoStrategy(info)
 
@@ -262,7 +262,7 @@ def test_python_env_strategy_guards_upstream_pypi(tmp_path: Path) -> None:
     info = InstallationInfo(
         kind=InstallKind.PIPX,
         executable_path=tmp_path / "watch-skill.exe",
-        version="1.5.9",
+        version="1.5.10",
     )
     strat = PythonEnvStrategy(info)
     rel = UpdateRelease(tag_name="core-v1.6.0", version="1.6.0", published_at="", assets=[])
@@ -283,7 +283,7 @@ def test_python_env_strategy_refuses_editable_source(tmp_path: Path) -> None:
     info = InstallationInfo(
         kind=InstallKind.EDITABLE_SOURCE,
         executable_path=tmp_path / "python.exe",
-        version="1.5.9",
+        version="1.5.10",
     )
     strat = PythonEnvStrategy(info)
     rel = UpdateRelease(tag_name="core-v1.6.0", version="1.6.0", published_at="", assets=[])
@@ -325,12 +325,12 @@ def test_cli_update_check_json_mocked() -> None:
     sample_res = UpdateResult(
         ok=True,
         status=UpdateStatus.AVAILABLE,
-        current_version="1.5.9",
+        current_version="1.5.10",
         target_version="1.6.0",
         update_available=True,
         install={"kind": "windows_inno"},
         strategy="inno_installer",
-        message="Update available: 1.5.9 -> 1.6.0",
+        message="Update available: 1.5.10 -> 1.6.0",
     )
 
     with patch("watch_skill.update.check_update", return_value=sample_res):
@@ -348,7 +348,7 @@ def test_cli_update_dry_run_json_mocked() -> None:
     sample_res = UpdateResult(
         ok=True,
         status=UpdateStatus.DRY_RUN,
-        current_version="1.5.9",
+        current_version="1.5.10",
         target_version="1.6.0",
         update_available=True,
         install={"kind": "windows_inno"},

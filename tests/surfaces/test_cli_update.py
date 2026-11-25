@@ -23,10 +23,10 @@ from watch_skill.update_check import (
 
 
 def test_extract_version_from_tag():
-    assert extract_version_from_tag("core-v1.5.9") == "1.5.9"
+    assert extract_version_from_tag("core-v1.5.10") == "1.5.10"
     assert extract_version_from_tag("deepwatch-v0.1.4") == "0.1.4"
-    assert extract_version_from_tag("v1.5.9") == "1.5.9"
-    assert extract_version_from_tag("1.5.9") == "1.5.9"
+    assert extract_version_from_tag("v1.5.10") == "1.5.10"
+    assert extract_version_from_tag("1.5.10") == "1.5.10"
 
 
 def test_is_newer_version():
@@ -137,7 +137,7 @@ def test_fetch_latest_release_handles_errors_with_backoff(tmp_path: Path):
 
     # Simulated network timeout / failure sets checked_at backoff timestamp
     with patch("urllib.request.urlopen", side_effect=TimeoutError("Connection timed out")):
-        _fetch_latest_release("codevcn/watch-skill", "1.5.9", cache_file, None)
+        _fetch_latest_release("codevcn/watch-skill", "1.5.10", cache_file, None)
 
     assert cache_file.exists()
     cached = _read_cache(cache_file)
@@ -148,7 +148,7 @@ def test_fetch_latest_release_handles_errors_with_backoff(tmp_path: Path):
 def test_fetch_latest_release_product_isolation_regression(tmp_path: Path):
     cache_file = tmp_path / "update-check.json"
 
-    # Regression scenario: DeepWatch 0.1.6 was released after Core 1.5.9
+    # Regression scenario: DeepWatch 0.1.6 was released after Core 1.5.10
     # so deepwatch-v0.1.6 is at the top of the releases list.
     releases_payload = [
         {
@@ -158,14 +158,14 @@ def test_fetch_latest_release_product_isolation_regression(tmp_path: Path):
             "draft": False,
         },
         {
-            "tag_name": "core-v1.5.9",
-            "html_url": "https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.9",
+            "tag_name": "core-v1.5.10",
+            "html_url": "https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.10",
             "prerelease": False,
             "draft": False,
         },
         {
-            "tag_name": "core-v1.5.9",
-            "html_url": "https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.9",
+            "tag_name": "core-v1.5.10",
+            "html_url": "https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.10",
             "prerelease": False,
             "draft": False,
         },
@@ -173,21 +173,21 @@ def test_fetch_latest_release_product_isolation_regression(tmp_path: Path):
 
     mock_resp = MagicMock()
     mock_resp.status = 200
-    mock_resp.headers.get.return_value = "W/\"tag-core-v1.5.9\""
+    mock_resp.headers.get.return_value = "W/\"tag-core-v1.5.10\""
     mock_resp.read.return_value = json.dumps(releases_payload).encode("utf-8")
 
     mock_urlopen = MagicMock()
     mock_urlopen.__enter__.return_value = mock_resp
 
     with patch("urllib.request.urlopen", return_value=mock_urlopen):
-        _fetch_latest_release("codevcn/watch-skill", "1.5.9", cache_file, None)
+        _fetch_latest_release("codevcn/watch-skill", "1.5.10", cache_file, None)
 
     assert cache_file.exists()
     cached = _read_cache(cache_file)
     assert cached is not None
-    # Must correctly pick Core release 1.5.9, NOT DeepWatch 0.1.6!
-    assert cached["latest_version"] == "1.5.9"
-    assert "core-v1.5.9" in cached["release_url"]
+    # Must correctly pick Core release 1.5.10, NOT DeepWatch 0.1.6!
+    assert cached["latest_version"] == "1.5.10"
+    assert "core-v1.5.10" in cached["release_url"]
 
 
 def test_cli_runner_stdout_json_purity_with_update(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
