@@ -167,3 +167,108 @@ def test_the_handshake_reports_watch_skills_version_not_the_frameworks() -> None
     from watch_skill import __version__
 
     assert mcp.version == __version__
+
+
+def _unwrap_error(res) -> dict[str, object]:
+    import json
+
+    parsed = json.loads(res.content[0].text)
+    if isinstance(parsed, list):
+        return json.loads(parsed[0])
+    return parsed
+
+
+def test_watch_video_forwards_quality_options_and_validates_times(
+    monkeypatch,
+) -> None:
+    """watch_video passes resolution/timestamps/transcript_only/cloud_stt and validates times."""
+    from types import SimpleNamespace
+
+    captured: dict[str, object] = {}
+
+    def _fake_watch(source: str, **kwargs):
+        captured["source"] = source
+        captured.update(kwargs)
+        return SimpleNamespace(perception=SimpleNamespace(frames=[]))
+
+    monkeypatch.setattr("watch_skill.watch.watch", _fake_watch)
+    monkeypatch.setattr("watch_skill.index.index_watch_result", lambda _r: "vid-quality")
+    monkeypatch.setattr("watch_skill.report.render_report", lambda _r: "report ok")
+
+    ok_res = _call(
+        "watch_video",
+        source="demo.mp4",
+        start="00:05",
+        end="00:20",
+        resolution=1024,
+        timestamps="00:08, 00:12",
+        transcript_only=True,
+        cloud_stt=True,
+    )
+    ok_text = ok_res.content[0].text
+    assert "video_id: vid-quality" in ok_text
+    assert "report ok" in ok_text
+    assert captured["source"] == "demo.mp4"
+    assert captured["start_seconds"] == 5.0
+    assert captured["end_seconds"] == 20.0
+    assert captured["frame_width"] == 1024
+    assert captured["cue_timestamps"] == [8.0, 12.0]
+    assert captured["transcript_only"] is True
+    assert captured["allow_cloud_stt"] is True
+
+    bad_payload = _unwrap_error(
+        _call("watch_video", source="demo.mp4", timestamps="not-a-timestamp")
+    )
+    assert bad_payload["error"] == "perceive.bad_window"
+    assert bad_payload["fix"]
+
+
+def test_get_moment_forwards_max_frames_and_returns_structured_errors(
+    monkeypatch,
+) -> None:
+    """get_moment forwards max_frames and maps bad inputs to structured error JSON."""
+    from types import SimpleNamespace
+
+    seen: dict[str, object] = {}
+
+    def _fake_moment(
+        video: str,
+        timestamp: float,
+        window: float = 10.0,
+        *,
+        max_frames: int = 6,
+    ):
+        seen["video"] = video
+        seen["timestamp"] = timestamp
+        seen["window"] = window
+        seen["max_frames"] = max_frames
+        return SimpleNamespace(
+            video_id=video,
+            timestamp=timestamp,
+            window=window,
+            segments=[],
+            ocr=[],
+            frames=[],
+        )
+
+    monkeypatch.setattr("watch_skill.index.get_moment", _fake_moment)
+
+    ok_res = _call("get_moment", video="vid-1", timestamp="01:10", window=8.0, max_frames=9)
+    assert "Moment 01:10" in ok_res.content[0].text
+    assert seen == {
+        "video": "vid-1",
+        "timestamp": 70.0,
+        "window": 8.0,
+        "max_frames": 9,
+    }
+
+    bad_ts = _unwrap_error(_call("get_moment", video="vid-1", timestamp="bad-time"))
+    assert bad_ts["error"] == "index.invalid_timestamp"
+    assert bad_ts["fix"]
+
+    bad_mf = _unwrap_error(
+        _call("get_moment", video="vid-1", timestamp="10", max_frames=99)
+    )
+    assert bad_mf["error"] == "index.invalid_max_frames"
+    assert bad_mf["fix"]
+

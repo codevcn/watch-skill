@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from watch_skill import config as _config
 from watch_skill.config import reset_settings
+
+_REPO_ROOT = Path(__file__).resolve().parents[1].resolve()
 
 _AMBIENT_KEYS = (
     "WATCHSKILL_ANTHROPIC_API_KEY",
@@ -25,6 +28,15 @@ def isolated_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point Watch Skill at a throwaway data dir (with spaces) for every test."""
     for var in _AMBIENT_KEYS:
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("WATCHSKILL_GLOBAL_ENV_FILE", str(tmp_path / "global.env"))
+
+    def _isolated_env_files() -> tuple[str, ...]:
+        global_path = str(_config.global_env_file())
+        if Path.cwd().resolve() == _REPO_ROOT:
+            return (global_path,)
+        return (global_path, ".env")
+
+    monkeypatch.setattr(_config, "_default_env_files", _isolated_env_files)
     data_dir = tmp_path / "agent vision data"
     monkeypatch.setenv("WATCHSKILL_DATA_DIR", str(data_dir))
     # Tests must NEVER reach a live vision backend, and must not inherit a

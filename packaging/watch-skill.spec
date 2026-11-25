@@ -19,14 +19,18 @@ datas = [
 ]
 
 # Targeted data files
-try:
-    datas += copy_metadata("watch-skill")
-except Exception:
-    pass
+for _pkg in ("watch-skill", "fastmcp", "mcp"):
+    try:
+        datas += copy_metadata(_pkg)
+    except Exception:
+        pass
 
 datas += collect_data_files("rapidocr")
 datas += collect_data_files("fastembed")
 datas += collect_data_files("onnxruntime")
+datas += collect_data_files("fastmcp")
+datas += collect_data_files("jsonschema")
+datas += collect_data_files("jsonschema_specifications")
 
 # Targeted dynamic libraries
 binaries = []
@@ -66,6 +70,10 @@ hiddenimports = [
     "watch_skill.health.vision_setup",
     "watch_skill.vision",
     "watch_skill.vision.registry",
+    "watch_skill.batch",
+    "watch_skill.viewer",
+    "watch_skill.workspace",
+    "watch_skill.workspace_root",
     "certifi",
     "packaging",
     "packaging.version",
@@ -76,10 +84,39 @@ hiddenimports = [
     "pydantic_settings",
     "rich",
     "typer",
+    "uvicorn",
+    "starlette",
+    "sse_starlette",
+    "jsonschema",
+    "websockets",
 ]
 
-# Add targeted submodules
-hiddenimports += collect_submodules("watch_skill.update_engine")
+# Add targeted submodules (engine + MCP server + runtime deps)
+for _pkg in (
+    "watch_skill.acquire",
+    "watch_skill.actions",
+    "watch_skill.answer",
+    "watch_skill.entities",
+    "watch_skill.extract",
+    "watch_skill.index",
+    "watch_skill.jobs",
+    "watch_skill.lessons",
+    "watch_skill.library",
+    "watch_skill.live",
+    "watch_skill.loop",
+    "watch_skill.models",
+    "watch_skill.observer",
+    "watch_skill.operate",
+    "watch_skill.perceive",
+    "watch_skill.surfaces.mcp",
+    "watch_skill.triggers",
+    "watch_skill.update_engine",
+    "watch_skill.verify",
+    "fastmcp",
+    "mcp",
+    "anyio",
+):
+    hiddenimports += collect_submodules(_pkg)
 hiddenimports += [m for m in collect_submodules("rapidocr") if "tensorrt" not in m]
 hiddenimports += collect_submodules("fastembed")
 hiddenimports += collect_submodules("scenedetect")

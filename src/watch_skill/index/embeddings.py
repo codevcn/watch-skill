@@ -20,6 +20,17 @@ _unavailable = False
 
 def _get_model(name: str):
     global _unavailable
+    from watch_skill.config import get_settings  # noqa: PLC0415
+    from watch_skill.policy import get_policy  # noqa: PLC0415
+
+    settings = get_settings()
+    local_only = settings.cost_policy == "offline_only"
+    try:
+        policy = get_policy()
+        local_only = local_only or policy.offline or not policy.allow_source_network
+    except Exception:
+        pass
+
     if name in _models or _unavailable:
         return _models.get(name)
     try:
@@ -27,14 +38,16 @@ def _get_model(name: str):
 
         from fastembed import TextEmbedding  # noqa: PLC0415
 
-        from watch_skill.config import get_settings  # noqa: PLC0415
-
-        cache_dir = str(get_settings().data_dir / "models" / "fastembed")
+        cache_dir = str(settings.data_dir / "models" / "fastembed")
         with warnings.catch_warnings():
             # informational pooling-change notice; the multilingual bench in
             # docs/DECISIONS.md was measured on the current (mean) pooling
             warnings.filterwarnings("ignore", message=".*mean pooling.*")
-            _models[name] = TextEmbedding(model_name=name, cache_dir=cache_dir)
+            _models[name] = TextEmbedding(
+                model_name=name,
+                cache_dir=cache_dir,
+                local_files_only=local_only,
+            )
     except ImportError:
         _unavailable = True
         print(
@@ -45,11 +58,13 @@ def _get_model(name: str):
         )
     except Exception as exc:  # noqa: BLE001
         # Installed but unloadable: out of memory, a truncated model cache, a
-        # runtime the CPU cannot use. Semantic search is a ranking
-        # improvement, not a precondition for retrieval, so degrade to
-        # keyword-only rather than taking every query down with it. Announced
-        # once, on stderr, because silently worse results are their own bug.
-        _unavailable = True
+        # runtime the CPU cannot use, or offline mode without a local cache.
+        # Semantic search is a ranking improvement, not a precondition for
+        # retrieval, so degrade to keyword-only rather than taking every query
+        # down with it. Announced once, on stderr, because silently worse
+        # results are their own bug.
+        if not local_only:
+            _unavailable = True
         print(
             f"[watch-skill] embedding model unavailable ({type(exc).__name__}: "
             f"{exc}) — falling back to keyword-only search",
@@ -179,6 +194,8 @@ def release_models() -> int:
     Same reasoning as the OCR engine cache: shared deliberately at runtime,
     but inherited accidentally between tests.
     """
+    global _unavailable
     count = len(_models)
     _models.clear()
+    _unavailable = False
     return count

@@ -148,7 +148,7 @@ def watch(
     from pathlib import Path
 
     from watch_skill.errors import WatchSkillError
-    from watch_skill.perceive.budget import parse_time
+    from watch_skill.perceive.budget import parse_watch_times
     from watch_skill.report import render_report
     from watch_skill.watch import watch as run_watch
 
@@ -187,14 +187,12 @@ def watch(
     # Only what the caller typed. A recording that carries its own interaction
     # moments is read by the engine, so every surface behaves the same way and
     # this one stays the wrapper it is supposed to be.
-    cues = None
-    if timestamps:
-        cues = [t for t in (parse_time(tok) for tok in timestamps.split(",") if tok.strip()) if t is not None]
     try:
+        start_seconds, end_seconds, cues = parse_watch_times(start, end, timestamps)
         result = run_watch(
             source,
-            start_seconds=parse_time(start),
-            end_seconds=parse_time(end),
+            start_seconds=start_seconds,
+            end_seconds=end_seconds,
             max_frames=max_frames,
             frame_width=resolution,
             cue_timestamps=cues,
@@ -438,7 +436,7 @@ def moment_cmd(
     """Dense frames + transcript + OCR around one moment."""
     from watch_skill.errors import WatchSkillError
     from watch_skill.index import get_moment as moment
-    from watch_skill.perceive.budget import format_time, parse_time
+    from watch_skill.perceive.budget import format_time, parse_moment_args
     from watch_skill.surfaces.cli.envelope import (
         OutputEnvelope,
         clean_frame_paths,
@@ -446,39 +444,9 @@ def moment_cmd(
         emit_json_error,
     )
 
-    if window < 0.5 or window > 120.0:
-        if json_output:
-            emit_json_error(
-                command="moment",
-                code="index.invalid_window",
-                message="Window must be between 0.5 and 120.0 seconds.",
-                fix="pass a window between 0.5 and 120.0 seconds (e.g. --window 10.0)",
-                video_id=video,
-            )
-            raise typer.Exit(code=1)
-        _console.print("[red]error:[/red] Window must be between 0.5 and 120.0 seconds.")
-        raise typer.Exit(code=1)
-
     try:
-        ts = parse_time(timestamp)
-    except ValueError:
-        ts = None
-
-    if ts is None or ts < 0:
-        if json_output:
-            emit_json_error(
-                command="moment",
-                code="index.invalid_timestamp",
-                message=f"Cannot parse timestamp: '{timestamp}'",
-                fix="pass timestamp as SS, MM:SS, or HH:MM:SS (e.g. 02:30)",
-                video_id=video,
-            )
-            raise typer.Exit(code=1)
-        _console.print(f"[red]error:[/red] invalid timestamp: '{timestamp}'")
-        raise typer.Exit(code=1)
-
-    try:
-        ctx = moment(video, ts, window=window)
+        ts, valid_window = parse_moment_args(timestamp, window)
+        ctx = moment(video, ts, window=valid_window)
     except WatchSkillError as exc:
         if json_output:
             emit_json_error(
@@ -490,6 +458,7 @@ def moment_cmd(
                 video_id=video,
             )
             raise typer.Exit(code=1) from None
+        _console.print(f"[red]error:[/red] {_plain(exc)}")
         print(json.dumps(exc.to_dict(), indent=2))
         raise typer.Exit(code=1) from None
 
@@ -2338,6 +2307,10 @@ def update_cmd(
         _console.print(f"[blue]ℹ[/blue] Dry run completed: target version {result.target_version} (strategy: {result.strategy}).")
     elif result.status.value == "handoff_started":
         _console.print("[green]✓[/green] Update downloaded and verified (SHA-256 ok). Handing off to installer...")
+        _console.print(
+            "[cyan]ℹ[/cyan] Any running MCP server (`watch-skill serve`) will be closed during upgrade; "
+            "reload your IDE MCP server once complete."
+        )
     elif result.status.value == "updated":
         _console.print(f"[green]✓[/green] Successfully updated to version {result.target_version}.")
 
@@ -2363,6 +2336,7 @@ def _print_version(value: bool) -> None:
 # type first — and what packaging smoke tests reach for.
 @app.callback()
 def _main(
+    ctx: typer.Context,
     _version: bool = typer.Option(
         False,
         "--version",
@@ -2373,6 +2347,8 @@ def _main(
     ),
 ) -> None:
     """Give any agent a video input: watch, index, ask, and iterate."""
+    if ctx.invoked_subcommand in {"serve", "bridge", "update"}:
+        return
     try:
         from watch_skill.update_check import check_for_updates
 

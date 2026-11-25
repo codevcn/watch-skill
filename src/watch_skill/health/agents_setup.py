@@ -46,6 +46,8 @@ def server_command(project_dir: Path | None = None) -> tuple[str, list[str]]:
     exe = shutil.which("watch-skill")
     if exe and ".venv" not in Path(exe).parts and "venv" not in Path(exe).parts:
         return "watch-skill", ["serve"]
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve()), ["serve"]
     root = Path(__file__).resolve().parents[3]
     return "uv", ["--directory", str(root), "run", "watch-skill", "serve"]
 
@@ -54,7 +56,19 @@ def detect_agents() -> list[AgentTarget]:
     """Find supported agents on this machine (Windows/macOS/Linux paths)."""
     home, appdata = _home(), _appdata()
     mac_support = home / "Library" / "Application Support"
+    antigravity_cfg = home / ".gemini" / "config" / "mcp_config.json"
     candidates = [
+        AgentTarget(
+            "antigravity",
+            "Antigravity",
+            antigravity_cfg,
+            "json-mcpservers",
+            detected=(
+                (home / ".gemini" / "antigravity").is_dir()
+                or (home / ".gemini" / "antigravity-ide").is_dir()
+                or antigravity_cfg.is_file()
+            ),
+        ),
         AgentTarget(
             "claude-code",
             "Claude Code",
@@ -127,7 +141,7 @@ def _backup(path: Path) -> Path | None:
 def _write_json_mcpservers(path: Path, command: str, args: list[str]) -> None:
     data: dict = {}
     if path.is_file():
-        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+        data = json.loads(path.read_text(encoding="utf-8").strip() or "{}")
     servers = data.setdefault("mcpServers", {})
     servers["watch-skill"] = {"command": command, "args": args}
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -112,9 +112,10 @@ Options:
     "D:\\cache\\.watch-skill\\cache\\d76c0fe5f3193eec\\f_002.jpg"
   ],
   "data": {
+    "source": "video.mp4",
     "duration": 125.4,
-    "scenes_detected": 14,
-    "transcript_segments": 22
+    "transcript_source": "captions",
+    "transcript_segments_count": 22
   }
 }
 ```

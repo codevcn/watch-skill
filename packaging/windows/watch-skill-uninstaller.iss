@@ -25,7 +25,7 @@ WizardStyle=modern
 [Code]
 function InitializeSetup(): Boolean;
 var
-  RegKey, UninstStr, AppDir, InternalDir, GeminiSkillDir, ClaudeSkillDir: string;
+  RegKey, UninstStr, AppDir, InternalDir, GeminiSkillBase, ClaudeSkillBase: string;
   ResultCode: Integer;
 begin
   RegKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + WATCHSKILL_APP_ID + '_is1';
@@ -50,10 +50,12 @@ begin
   // 2. Residual cleanup (idempotent, safe fallback)
   RemovePathEntry(AppDir);
 
-  GeminiSkillDir := ExpandConstant('{%USERPROFILE}\.gemini\config\skills\watch-video-cli');
-  ClaudeSkillDir := ExpandConstant('{%USERPROFILE}\.claude\skills\watch-video-cli');
-  RemoveManagedSkill(GeminiSkillDir);
-  RemoveManagedSkill(ClaudeSkillDir);
+  GeminiSkillBase := ExpandConstant('{%USERPROFILE}\.gemini\config\skills');
+  ClaudeSkillBase := ExpandConstant('{%USERPROFILE}\.claude\skills');
+  RemoveManagedSkill(AddBackslash(GeminiSkillBase) + 'watch-video-extra');
+  RemoveManagedSkill(AddBackslash(GeminiSkillBase) + 'watch-video-cli');
+  RemoveManagedSkill(AddBackslash(ClaudeSkillBase) + 'watch-video-extra');
+  RemoveManagedSkill(AddBackslash(ClaudeSkillBase) + 'watch-video-cli');
 
   // Thoroughly remove PyInstaller onedir _internal runtime before deleting AppDir
   InternalDir := AddBackslash(AppDir) + '_internal';

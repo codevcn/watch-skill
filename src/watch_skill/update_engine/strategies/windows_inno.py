@@ -128,5 +128,8 @@ class WindowsInnoStrategy(UpdateStrategy):
                 "expected": plan.target_asset.expected_sha256,
             },
             transaction_id=tx_id,
-            message="Installer process launched successfully. The application will be updated in the background.",
+            message=(
+                "Installer process launched successfully. The application will be updated in the background; "
+                "reload or restart any running MCP host (`watch-skill serve`) once complete."
+            ),
         )

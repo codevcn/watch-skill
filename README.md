@@ -10,7 +10,7 @@
 **Watch Skill** turns video, audio and screen activity into searchable,
 timestamped evidence, and answers *did that actually work?* with a
 deterministic contract rather than a model's opinion. Available as a zero-dependency
-standalone Windows executable/installer, Python CLI, MCP server, and REST API.
+Windows 1-Click Installer (`watch-skill serve` MCP server + maintenance CLI), Python CLI, MCP server, and REST API.
 
 **DeepWatch** is a ready-made agent workspace, built on the official DeepSeek
 Harness with Watch Skill already composed in, where a tool call leaves a receipt
@@ -22,7 +22,7 @@ produced it.
 **Distribution & Releases**
 
 [![Release](https://img.shields.io/github/v/release/codevcn/watch-skill?label=release%20(v1.5.7)&color=blue&logo=github)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.7)
-[![Windows Release](https://img.shields.io/badge/Windows-1--Click%20Installer%20%26%20Standalone-0078D6?logo=windows&logoColor=white)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.7)
+[![Windows Release](https://img.shields.io/badge/Windows-1--Click%20MCP%20%26%20CLI%20Installer-0078D6?logo=windows&logoColor=white)](https://github.com/codevcn/watch-skill/releases/tag/core-v1.5.7)
 [![License](https://img.shields.io/github/license/codevcn/watch-skill)](LICENSE)
 
 **Python · PyPI**
@@ -41,12 +41,12 @@ produced it.
 
 [![CI](https://github.com/codevcn/watch-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/ci.yml)
 [![Workspace](https://github.com/codevcn/watch-skill/actions/workflows/workspace-ci.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/workspace-ci.yml)
-[![Windows Packaging](https://github.com/codevcn/watch-skill/actions/workflows/package-windows.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/package-windows.yml)
+[![Windows Packaging](https://github.com/codevcn/watch-skill/actions/workflows/packaging-windows.yml/badge.svg)](https://github.com/codevcn/watch-skill/actions/workflows/packaging-windows.yml)
 [![Agent Skills](https://www.skills.sh/b/oxbshw/watch-skill)](https://www.skills.sh/oxbshw/watch-skill/watch)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%C2%B7%20HTTP-8A2BE2)](docs/agents/README.md)
 
 [Quick Install](#start-here) ·
-[Windows 1-Click](#windows-1-click-installer--standalone-binaries) ·
+[Windows 1-Click](#windows-1-click-installer) ·
 [Agent Integration](#ai-agent-integration--protocol) ·
 [Auto-Update Check](#smart-background-auto-update-check) ·
 [DeepWatch Workspace](#the-deepwatch-workspace) ·
@@ -84,7 +84,7 @@ values, SQL results, HTTP responses and DOM state, and report *passed*,
 *failed*, *unverified* or *inconclusive* — four answers, because three of them
 are not the same as "no".
 
-Any agent can use it: **MCP**, a **CLI**, a **Windows standalone binary**, or a **REST** API.
+Any agent can use it: **MCP**, a **CLI**, a **Windows 1-Click Installer (`onedir`)**, or a **REST** API.
 
 </td>
 <td width="50%" valign="top">
@@ -131,23 +131,25 @@ For zero-dependency deployment on Windows, download the installer from **[GitHub
 
 | Asset | Type | Description |
 |---|---|---|
-| `watch-skill-installer.exe` | Setup Wizard | **Recommended.** Installs `watch-skill.exe` and its runtime (`_internal/`) to `%LOCALAPPDATA%\Programs\watch-skill`, sets User `PATH`, and registers Windows Uninstaller. |
+| `watch-skill-installer.exe` | Setup Wizard | **Recommended.** Installs `watch-skill.exe` (MCP server `watch-skill serve` + maintenance CLI) and `_internal/` to `%LOCALAPPDATA%\Programs\watch-skill`, deploys agent skills (`watch-video-extra` & `watch-video-cli`), registers MCP servers, sets User `PATH`, and registers Windows Uninstaller. |
 | `watch-skill-uninstaller.exe` | Clean Uninstaller | Removes the application directory (including `_internal/`), cleans User `PATH`, and removes managed skills. |
 | `SHA256SUMS.txt` | Verification | Cryptographic SHA-256 checksums for asset integrity verification. |
 
 ### 1-Click Installation Steps
 
 1. Download `watch-skill-installer.exe` from the latest `core-v*` release on **[GitHub Releases](https://github.com/codevcn/watch-skill/releases)** (and verify against `SHA256SUMS.txt`).
-2. Double-click to run (no administrator rights required).
+2. Double-click to run (no administrator rights required). The installer bundles the MCP server (`watch-skill serve`, 39 tools) and deploys both `/watch-video-extra` (MCP-first analysis) and `/watch-video-cli` (CLI reference).
 3. Open a new PowerShell terminal and verify:
    ```powershell
    watch-skill --version
    watch-skill doctor --json
+   watch-skill setup --yes    # Register MCP server with Antigravity/Claude/Cursor/Codex
    ```
 
-To upgrade an existing installation later, run:
+To try a video directly or upgrade later:
 ```powershell
-watch-skill update
+watch-skill watch <video-url-or-file>
+watch-skill update         # Closes running MCP server, upgrades, then reload MCP in IDE
 ```
 
 ### Clean Uninstallation
@@ -180,16 +182,20 @@ You can remove `watch-skill` cleanly at any time through **Windows Settings → 
 
 </div>
 
-### Installing the Agent Skill
+### Installing the Agent Skills
 
-To give your agent native video-watching workflows, copy or link [`skills/watch-video-cli/SKILL.md`](skills/watch-video-cli/SKILL.md) to your agent's skill directory:
+Watch Skill ships both **MCP-first** ([`skills/watch-video-extra/SKILL.md`](skills/watch-video-extra/SKILL.md), recommended for Antigravity and MCP hosts) and **CLI-first** ([`skills/watch-video-cli/SKILL.md`](skills/watch-video-cli/SKILL.md)) workflows. Copy either to your agent's skill directory (the Windows installer deploys both automatically):
 
 ```powershell
-# For Antigravity (Google DeepMind)
+# For Antigravity (Google DeepMind) — MCP-first + CLI maintenance
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\config\skills\watch-video-extra"
+Copy-Item "skills\watch-video-extra\SKILL.md" "$env:USERPROFILE\.gemini\config\skills\watch-video-extra\"
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.gemini\config\skills\watch-video-cli"
 Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.gemini\config\skills\watch-video-cli\"
 
 # For Claude Code
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\watch-video-extra"
+Copy-Item "skills\watch-video-extra\SKILL.md" "$env:USERPROFILE\.claude\skills\watch-video-extra\"
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\watch-video-cli"
 Copy-Item "skills\watch-video-cli\SKILL.md" "$env:USERPROFILE\.claude\skills\watch-video-cli\"
 ```
@@ -219,7 +225,7 @@ When invoking `watch-skill` from an agent terminal tool:
 
 ## Smart Background Auto-Update Check
 
-The standalone Windows executable and CLI feature an intelligent, non-blocking background update checker designed specifically for unattended AI workflows:
+The packaged Windows distribution and CLI feature a non-blocking background update checker designed for AI workflows:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -404,7 +410,7 @@ More: **[architecture](docs/architecture.md)** · **[verification](docs/verifica
 | `config` | `watch-skill config {get\|set\|list} [KEY] [VAL]` | Inspect and update configuration settings with automatic secret masking. |
 | `loop` | `watch-skill loop {start\|iterate\|status}` | Run the Observe → Critique → Fix → Verify visual agent loop. |
 | `update` | `watch-skill update [--check] [--dry-run] [--force] [--json]` | Perform end-to-end self-update with SHA-256 verification and rollback. |
-| `serve` | `watch-skill serve [--transport stdio\|sse]` | Launch the official MCP server (exposing all 39 tools). |
+| `serve` | `watch-skill serve [--http]` | Launch the official MCP server (exposing all 39 tools). |
 
 ---
 

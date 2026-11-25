@@ -26,7 +26,7 @@ _STAGE_PROGRESS: dict[JobStage, float] = {
 def _watch_job(ctx: JobContext) -> tuple[str | None, str | None]:
     """Watch and index a source, checkpointing at every stage boundary."""
     from watch_skill.index.store import index_watch_result
-    from watch_skill.perceive.budget import parse_time
+    from watch_skill.perceive.budget import parse_watch_times
     from watch_skill.watch import watch
 
     payload = ctx.payload
@@ -44,11 +44,18 @@ def _watch_job(ctx: JobContext) -> tuple[str | None, str | None]:
         stage = phase_to_stage.get(phase, JobStage.PROBE)
         ctx.checkpoint(stage, _STAGE_PROGRESS.get(stage, fraction))
 
+    start_seconds, end_seconds, cues = parse_watch_times(
+        payload.get("start"), payload.get("end"), payload.get("timestamps")
+    )
     result = watch(
         payload["source"],
-        start_seconds=parse_time(payload.get("start")),
-        end_seconds=parse_time(payload.get("end")),
+        start_seconds=start_seconds,
+        end_seconds=end_seconds,
         max_frames=payload.get("budget"),
+        frame_width=payload.get("resolution"),
+        cue_timestamps=cues,
+        transcript_only=bool(payload.get("transcript_only", False)),
+        allow_cloud_stt=payload.get("cloud_stt"),
         on_progress=on_progress,
     )
     ctx.checkpoint(JobStage.EMBED, _STAGE_PROGRESS[JobStage.EMBED])

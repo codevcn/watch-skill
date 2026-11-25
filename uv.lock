@@ -6357,6 +6357,7 @@ autogen = [
 ]
 cli = [
     { name = "fastembed" },
+    { name = "fastmcp" },
     { name = "imagehash" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -6454,7 +6455,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.26,<1" },
     { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.50,<1" },
     { name = "watch-skill", extras = ["perceive", "index", "mcp"], marker = "extra == 'standard'" },
-    { name = "watch-skill", extras = ["perceive", "ocr", "index"], marker = "extra == 'cli'" },
+    { name = "watch-skill", extras = ["perceive", "ocr", "index", "mcp"], marker = "extra == 'cli'" },
     { name = "watch-skill", extras = ["perceive", "ocr", "whisper", "index", "mcp", "api", "loop", "attest"], marker = "extra == 'all'" },
 ]
 provides-extras = ["perceive", "ocr", "whisper", "index", "mcp", "api", "loop", "diarize", "attest", "langchain", "openai-agents", "crewai", "llamaindex", "autogen", "cli", "standard", "all"]

@@ -95,3 +95,77 @@ def format_time(seconds: float) -> str:
     if hours:
         return f"{hours}:{minutes:02d}:{sec:02d}"
     return f"{minutes:02d}:{sec:02d}"
+
+
+def parse_cue_timestamps(timestamps: str | None) -> list[float] | None:
+    """Parse comma-separated cue timestamps into seconds, raising PerceptionError on bad input."""
+    if not timestamps or not timestamps.strip():
+        return None
+    from watch_skill.errors import PerceptionError
+
+    cues: list[float] = []
+    for raw in timestamps.split(","):
+        tok = raw.strip()
+        if not tok:
+            continue
+        try:
+            val = parse_time(tok)
+        except ValueError as exc:
+            raise PerceptionError(
+                f"Cannot parse cue timestamp: '{tok}'",
+                code="perceive.bad_window",
+                fix="pass comma-separated timestamps as SS, MM:SS, or HH:MM:SS (e.g. 00:30,01:45)",
+            ) from exc
+        if val is not None:
+            if val < 0:
+                raise PerceptionError(
+                    f"Cue timestamp must be non-negative: '{tok}'",
+                    code="perceive.bad_window",
+                    fix="pass non-negative timestamps as SS, MM:SS, or HH:MM:SS (e.g. 00:30,01:45)",
+                )
+            cues.append(val)
+    return cues or None
+
+
+def parse_watch_times(
+    start: str | None,
+    end: str | None,
+    timestamps: str | None = None,
+) -> tuple[float | None, float | None, list[float] | None]:
+    """Parse optional watch window and cue timestamps into structured seconds."""
+    from watch_skill.errors import PerceptionError
+
+    parsed: list[float | None] = []
+    for label, raw in (("start", start), ("end", end)):
+        try:
+            parsed.append(parse_time(raw))
+        except ValueError as exc:
+            raise PerceptionError(
+                f"Cannot parse {label} timestamp: '{raw}'",
+                code="perceive.bad_window",
+                fix=f"pass {label} as SS, MM:SS, or HH:MM:SS (e.g. 01:30)",
+            ) from exc
+    return parsed[0], parsed[1], parse_cue_timestamps(timestamps)
+
+
+def parse_moment_args(timestamp: str, window: float) -> tuple[float, float]:
+    """Validate and parse moment center timestamp and window across CLI/MCP/REST."""
+    from watch_skill.errors import IndexError_
+
+    if window < 0.5 or window > 120.0:
+        raise IndexError_(
+            "Window must be between 0.5 and 120.0 seconds.",
+            code="index.invalid_window",
+            fix="pass a window between 0.5 and 120.0 seconds (e.g. --window 10.0)",
+        )
+    try:
+        ts = parse_time(timestamp)
+    except ValueError:
+        ts = None
+    if ts is None or ts < 0:
+        raise IndexError_(
+            f"Cannot parse timestamp: '{timestamp}'",
+            code="index.invalid_timestamp",
+            fix="pass timestamp as SS, MM:SS, or HH:MM:SS (e.g. 02:30)",
+        )
+    return ts, float(window)

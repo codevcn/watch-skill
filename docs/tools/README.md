@@ -41,6 +41,10 @@ then local whisper), and indexes everything. For follow-ups call
 | `start` / `end` | str | — | Zoom into a section with denser sampling |
 | `budget` | int | config | Frame-count cap for this call |
 | `background` | bool | `false` | Return a `job_id` instantly; poll `get_status` (use for long videos or strict client timeouts) |
+| `resolution` | int | `512` | Extracted frame width in px (raise to `768`/`1024` for dense UI or small text) |
+| `timestamps` | str | — | Comma-separated timestamps (`SS`, `MM:SS`, `HH:MM:SS`) to pin frames explicitly |
+| `transcript_only` | bool | `false` | Skip frame extraction and analyze captions/speech only |
+| `cloud_stt` | bool | config | Explicitly opt in/out of cloud STT for this watch |
 
 Returns a markdown report (metadata, frame selection, OCR, transcript)
 prefixed with the `video_id`, plus key frames as images.
@@ -97,7 +101,8 @@ Zoom into one specific moment of an indexed video ("what happens at
 |---|---|---|---|
 | `video` | str | required | `video_id` or original source |
 | `timestamp` | str | required | Center of the window |
-| `window` | float | `10.0` | Seconds of context around the timestamp |
+| `window` | float | `10.0` | Seconds of context around the timestamp (`0.5`–`120.0`) |
+| `max_frames` | int | `6` | Maximum returned frames around the moment (`1`–`12`) |
 
 Returns dense frames + transcript + OCR within the window.
 

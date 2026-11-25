@@ -18,7 +18,11 @@ from watch_skill import __version__
 from watch_skill.config import get_settings
 from watch_skill.errors import WatchSkillError
 from watch_skill.health.binaries import prepend_bin_dir_to_path
-from watch_skill.perceive.budget import format_time, parse_time
+from watch_skill.perceive.budget import (
+    format_time,
+    parse_moment_args,
+    parse_watch_times,
+)
 
 # Imported at module scope, not lazily inside the tool, because the MCP Apps
 # declarations below are decorator arguments: they are evaluated when this
@@ -69,10 +73,15 @@ def _frame_images(frame_paths: list[str], cap: int | None = None) -> list[Image]
 
 def _run_watch(
     source: str,
-    start: str | None,
-    end: str | None,
+    start_seconds: float | None,
+    end_seconds: float | None,
     budget: int | None,
     progress_cb,
+    *,
+    resolution: int | None = None,
+    cues: list[float] | None = None,
+    transcript_only: bool = False,
+    cloud_stt: bool | None = None,
 ) -> tuple[str, Any]:
     """The synchronous watch+index pipeline shared by both watch paths."""
     from watch_skill.index import index_watch_result
@@ -80,9 +89,13 @@ def _run_watch(
 
     result = watch(
         source,
-        start_seconds=parse_time(start),
-        end_seconds=parse_time(end),
+        start_seconds=start_seconds,
+        end_seconds=end_seconds,
         max_frames=budget,
+        frame_width=resolution,
+        cue_timestamps=cues,
+        transcript_only=transcript_only,
+        allow_cloud_stt=cloud_stt,
         on_progress=progress_cb,
     )
     progress_cb("indexing (search + embeddings + scene descriptions)", 0.9)
@@ -124,6 +137,10 @@ async def watch_video(
     end: str | None = None,
     budget: int | None = None,
     background: bool = False,
+    resolution: int | None = None,
+    timestamps: str | None = None,
+    transcript_only: bool = False,
+    cloud_stt: bool | None = None,
     ctx: Context | None = None,
 ) -> list[Any]:
     """FIRST LOOK at any video — use when given a video you have NOT analyzed
@@ -133,17 +150,37 @@ async def watch_video(
     whisper), and INDEXES everything. Returns a report + key frames as
     images. For follow-ups about the same video call ask_video — never
     re-watch. start/end (SS, MM:SS, HH:MM:SS) zoom into a section with denser
-    sampling; budget caps frame count. Long video or strict client timeout?
-    Pass background=true for an instant job_id, then poll get_status."""
+    sampling; budget caps frame count; resolution (e.g. 1024) increases
+    frame clarity for dense UI/code; timestamps pins frames at comma-separated
+    moments; transcript_only skips frame extraction; cloud_stt explicitly opts
+    in/out of cloud STT. Long video or strict client timeout? Pass
+    background=true for an instant job_id, then poll get_status."""
     from watch_skill import jobs
+
+    try:
+        start_seconds, end_seconds, cues = parse_watch_times(start, end, timestamps)
+    except WatchSkillError as exc:
+        return [_error_payload(exc)]
 
     if background:
         # Durable: the id outlives this process, so a client that reconnects
         # after a restart can still collect the result.
         durable = jobs.submit_and_run(
             "watch",
-            {"source": source, "start": start, "end": end, "budget": budget},
-            idempotency_key=f"watch:{source}:{start}:{end}:{budget}",
+            {
+                "source": source,
+                "start": start,
+                "end": end,
+                "budget": budget,
+                "resolution": resolution,
+                "timestamps": timestamps,
+                "transcript_only": transcript_only,
+                "cloud_stt": cloud_stt,
+            },
+            idempotency_key=(
+                f"watch:{source}:{start}:{end}:{budget}:{resolution}:"
+                f"{timestamps}:{transcript_only}:{cloud_stt}"
+            ),
         )
         return [
             f"started background watch: job_id `{durable.job_id}`\n"
@@ -154,7 +191,17 @@ async def watch_video(
 
     job = jobs.start_job(
         "watch",
-        lambda progress: _run_watch(source, start, end, budget, progress),
+        lambda progress: _run_watch(
+            source,
+            start_seconds,
+            end_seconds,
+            budget,
+            progress,
+            resolution=resolution,
+            cues=cues,
+            transcript_only=transcript_only,
+            cloud_stt=cloud_stt,
+        ),
     )
     while job.status == "running":
         if ctx is not None:
@@ -315,17 +362,35 @@ def stats() -> str:
 
 
 @mcp.tool(output_schema=None)
-def get_moment(video: str, timestamp: str, window: float = 10.0) -> list[Any]:
+def get_moment(
+    video: str,
+    timestamp: str,
+    window: float = 10.0,
+    max_frames: int = 6,
+) -> list[Any]:
     """Zoom into ONE SPECIFIC MOMENT of an indexed video — use when the user
     names a timestamp ("what happens at 2:30?") or when an ask_video hit
     needs more surrounding detail. Returns dense frames + transcript + OCR
-    within `window` seconds around `timestamp` (SS, MM:SS, or HH:MM:SS).
-    For a broad question about the whole video, use ask_video instead."""
+    within `window` seconds (0.5-120.0) around `timestamp` (SS, MM:SS, or
+    HH:MM:SS), capped at `max_frames` (1-12). For a broad question about the
+    whole video, use ask_video instead."""
+    from watch_skill.errors import IndexError_
     from watch_skill.index import get_moment as moment
 
+    if max_frames < 1 or max_frames > 12:
+        return [
+            _error_payload(
+                IndexError_(
+                    "max_frames must be between 1 and 12.",
+                    code="index.invalid_max_frames",
+                    fix="pass max_frames between 1 and 12 (e.g. max_frames=6)",
+                )
+            )
+        ]
+
     try:
-        ts = parse_time(timestamp) or 0.0
-        ctx = moment(video, ts, window=window)
+        ts, valid_window = parse_moment_args(timestamp, window)
+        ctx = moment(video, ts, window=valid_window, max_frames=max_frames)
     except WatchSkillError as exc:
         return [_error_payload(exc)]
     lines = [f"# Moment {format_time(ctx.timestamp)} ±{ctx.window / 2:.0f}s of {ctx.video_id}", ""]
@@ -337,7 +402,7 @@ def get_moment(video: str, timestamp: str, window: float = 10.0) -> list[Any]:
         lines += [f"- [{format_time(o['timestamp'])}] {o['text']}" for o in ctx.ocr]
     lines.append("Frames:")
     lines += [f"- t={format_time(f['timestamp'])}: `{f['frame_path']}`" for f in ctx.frames]
-    return ["\n".join(lines), *_frame_images([f["frame_path"] for f in ctx.frames])]
+    return ["\n".join(lines), *_frame_images([f["frame_path"] for f in ctx.frames], cap=max_frames)]
 
 
 @mcp.tool
@@ -769,7 +834,11 @@ def verify_contract(
 
 @mcp.tool
 def get_evidence(run_id: str) -> str:
-    """Read back a verification run's evidence bundle and attestation.
+    """Read back a verification contract run's evidence bundle and attestation.
+
+    Note: `run_id` is a verification run from `verify_contract` (not a
+    `video_id`; use `get_moment` or `ask_video` to inspect indexed video
+    frames, OCR, and transcript).
 
     The attestation is re-checked against the bundle on the way out, so an
     edited evidence file raises instead of being reported as a verified

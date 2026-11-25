@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from watch_skill import __version__
 from watch_skill.config import get_settings
 from watch_skill.errors import WatchSkillError
-from watch_skill.perceive.budget import parse_time
+from watch_skill.perceive.budget import parse_moment_args, parse_watch_times
 
 _HTTP_STATUS_BY_PREFIX = {
     "acquire": 502,
@@ -83,6 +83,10 @@ class WatchRequest(BaseModel):
     start: str | None = Field(default=None, description="SS, MM:SS, or HH:MM:SS.")
     end: str | None = None
     budget: int | None = Field(default=None, description="Frame-cap override.")
+    resolution: int | None = Field(default=None, ge=144, le=1920, description="Frame width in px.")
+    timestamps: str | None = Field(default=None, description="Comma-separated timestamps to pin.")
+    transcript_only: bool = Field(default=False, description="Skip frame extraction.")
+    cloud_stt: bool | None = Field(default=None, description="Explicit opt-in/out for cloud STT.")
     inline_frames: int = Field(default=0, ge=0, le=12, description="How many frames to inline as base64.")
 
 
@@ -170,11 +174,18 @@ def create_app() -> FastAPI:
         from watch_skill.watch import watch
 
         try:
+            start_seconds, end_seconds, cues = parse_watch_times(
+                req.start, req.end, req.timestamps
+            )
             result = watch(
                 req.source,
-                start_seconds=parse_time(req.start),
-                end_seconds=parse_time(req.end),
+                start_seconds=start_seconds,
+                end_seconds=end_seconds,
                 max_frames=req.budget,
+                frame_width=req.resolution,
+                cue_timestamps=cues,
+                transcript_only=req.transcript_only,
+                allow_cloud_stt=req.cloud_stt,
             )
             video_id = index_watch_result(result)
         except WatchSkillError as exc:
@@ -413,13 +424,15 @@ def create_app() -> FastAPI:
         video: str,
         timestamp: str = Query(description="SS, MM:SS, or HH:MM:SS."),
         window: float = Query(default=10.0, gt=0, le=120),
+        max_frames: int = Query(default=6, ge=1, le=12),
         inline_frames: int = Query(default=0, ge=0, le=12),
     ) -> dict[str, Any]:
         """Dense frames + transcript + OCR around one moment."""
         from watch_skill.index import get_moment as moment
 
         try:
-            ctx = moment(video, parse_time(timestamp) or 0.0, window=window)
+            ts, valid_window = parse_moment_args(timestamp, window)
+            ctx = moment(video, ts, window=valid_window, max_frames=max_frames)
         except WatchSkillError as exc:
             raise _http_error(exc) from exc
         return {
