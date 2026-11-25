@@ -566,13 +566,46 @@ def render_viewer_html(video_id_or_source: str) -> tuple[str, str]:
     n_frames = sum(1 for s in scenes if _thumb_data_uri(s["frame_path"]))
     n_words = sum(len(s["text"].split()) for s in segments)
     ticks = _ticks_html(seconds)
+    logo_svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">'
+        '<g opacity="0.58" fill="#3160FC">'
+        '<circle cx="87.53" cy="55.94" r="2.4"/><circle cx="83.86" cy="67.25" r="2.4"/>'
+        '<circle cx="76.87" cy="76.87" r="2.4"/><circle cx="67.25" cy="83.86" r="2.4"/>'
+        '<circle cx="55.94" cy="87.53" r="2.4"/><circle cx="44.06" cy="87.53" r="2.4"/>'
+        '<circle cx="32.75" cy="83.86" r="2.4"/><circle cx="23.13" cy="76.87" r="2.4"/>'
+        '<circle cx="16.14" cy="67.25" r="2.4"/><circle cx="12.47" cy="55.94" r="2.4"/>'
+        '<circle cx="12.47" cy="44.06" r="2.4"/><circle cx="16.14" cy="32.75" r="2.4"/>'
+        '<circle cx="23.13" cy="23.13" r="2.4"/><circle cx="32.75" cy="16.14" r="2.4"/>'
+        '<circle cx="44.06" cy="12.47" r="2.4"/><circle cx="55.94" cy="12.47" r="2.4"/>'
+        '<circle cx="67.25" cy="16.14" r="2.4"/><circle cx="76.87" cy="23.13" r="2.4"/>'
+        '<circle cx="83.86" cy="32.75" r="2.4"/><circle cx="87.53" cy="44.06" r="2.4"/>'
+        '</g><g opacity="0.82" fill="#3160FC">'
+        '<circle cx="78.8" cy="50" r="3"/><circle cx="75.95" cy="62.5" r="3"/>'
+        '<circle cx="67.96" cy="72.52" r="3"/><circle cx="56.41" cy="78.08" r="3"/>'
+        '<circle cx="43.59" cy="78.08" r="3"/><circle cx="32.04" cy="72.52" r="3"/>'
+        '<circle cx="24.05" cy="62.5" r="3"/><circle cx="21.2" cy="50" r="3"/>'
+        '<circle cx="24.05" cy="37.5" r="3"/><circle cx="32.04" cy="27.48" r="3"/>'
+        '<circle cx="43.59" cy="21.92" r="3"/><circle cx="56.41" cy="21.92" r="3"/>'
+        '<circle cx="67.96" cy="27.48" r="3"/><circle cx="75.95" cy="37.5" r="3"/>'
+        '</g><g fill="#3160FC">'
+        '<circle cx="68.29" cy="57.58" r="3.4"/><circle cx="57.58" cy="68.29" r="3.4"/>'
+        '<circle cx="42.42" cy="68.29" r="3.4"/><circle cx="31.71" cy="57.58" r="3.4"/>'
+        '<circle cx="31.71" cy="42.42" r="3.4"/><circle cx="42.42" cy="31.71" r="3.4"/>'
+        '<circle cx="57.58" cy="31.71" r="3.4"/><circle cx="68.29" cy="42.42" r="3.4"/>'
+        '<path d="M44 37.5L64 50L44 62.5Z"/>'
+        '</g></svg>'
+    )
+    favicon_uri = "data:image/svg+xml;base64," + base64.b64encode(logo_svg.encode("utf-8")).decode("ascii")
+    footer_mark = logo_svg.replace(
+        '<svg ', '<svg width="16" height="16" aria-hidden="true" style="vertical-align:-3px;margin-right:5px" ', 1
+    )
 
     page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/svg+xml" href="{favicon_uri}">
 <title>{_esc(title)} — Watch Skill</title>
 <style>{_CSS}</style>
 </head>
@@ -625,7 +658,7 @@ def render_viewer_html(video_id_or_source: str) -> tuple[str, str]:
   </aside>
 </div>
 
-<footer>Analyzed with <a href="https://github.com/oxbshw/watch-skill">Watch Skill</a>
+<footer>{footer_mark}Analyzed with <a href="https://github.com/oxbshw/watch-skill">Watch Skill</a>
  — watch, index, ask, and iterate on video. This page is self-contained and works offline.</footer>
 </div>
 <script>{_JS}</script>

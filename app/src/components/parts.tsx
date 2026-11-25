@@ -51,9 +51,56 @@ export function Mark() {
   return (
     <span className="mark">
       {/* Bundled inline. A remote icon would be a request the CSP forbids. */}
-      <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="9.2" fill="none" stroke="var(--accent)" strokeWidth="1.9" />
-        <circle cx="12" cy="12" r="3.4" fill="var(--accent)" />
+      <svg width="20" height="20" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+        <g opacity="0.58" fill="var(--accent)">
+          <circle cx="87.53" cy="55.94" r="2.4" />
+          <circle cx="83.86" cy="67.25" r="2.4" />
+          <circle cx="76.87" cy="76.87" r="2.4" />
+          <circle cx="67.25" cy="83.86" r="2.4" />
+          <circle cx="55.94" cy="87.53" r="2.4" />
+          <circle cx="44.06" cy="87.53" r="2.4" />
+          <circle cx="32.75" cy="83.86" r="2.4" />
+          <circle cx="23.13" cy="76.87" r="2.4" />
+          <circle cx="16.14" cy="67.25" r="2.4" />
+          <circle cx="12.47" cy="55.94" r="2.4" />
+          <circle cx="12.47" cy="44.06" r="2.4" />
+          <circle cx="16.14" cy="32.75" r="2.4" />
+          <circle cx="23.13" cy="23.13" r="2.4" />
+          <circle cx="32.75" cy="16.14" r="2.4" />
+          <circle cx="44.06" cy="12.47" r="2.4" />
+          <circle cx="55.94" cy="12.47" r="2.4" />
+          <circle cx="67.25" cy="16.14" r="2.4" />
+          <circle cx="76.87" cy="23.13" r="2.4" />
+          <circle cx="83.86" cy="32.75" r="2.4" />
+          <circle cx="87.53" cy="44.06" r="2.4" />
+        </g>
+        <g opacity="0.82" fill="var(--accent)">
+          <circle cx="78.8" cy="50" r="3" />
+          <circle cx="75.95" cy="62.5" r="3" />
+          <circle cx="67.96" cy="72.52" r="3" />
+          <circle cx="56.41" cy="78.08" r="3" />
+          <circle cx="43.59" cy="78.08" r="3" />
+          <circle cx="32.04" cy="72.52" r="3" />
+          <circle cx="24.05" cy="62.5" r="3" />
+          <circle cx="21.2" cy="50" r="3" />
+          <circle cx="24.05" cy="37.5" r="3" />
+          <circle cx="32.04" cy="27.48" r="3" />
+          <circle cx="43.59" cy="21.92" r="3" />
+          <circle cx="56.41" cy="21.92" r="3" />
+          <circle cx="67.96" cy="27.48" r="3" />
+          <circle cx="75.95" cy="37.5" r="3" />
+        </g>
+        <g fill="var(--accent)">
+          <circle cx="68.29" cy="57.58" r="3.4" />
+          <circle cx="57.58" cy="68.29" r="3.4" />
+          <circle cx="42.42" cy="68.29" r="3.4" />
+          <circle cx="31.71" cy="57.58" r="3.4" />
+          <circle cx="31.71" cy="42.42" r="3.4" />
+          <circle cx="42.42" cy="31.71" r="3.4" />
+          <circle cx="57.58" cy="31.71" r="3.4" />
+          <circle cx="68.29" cy="42.42" r="3.4" />
+          <path d="M44 37.5L64 50L44 62.5Z" />
+        </g>
       </svg>
       Watch&nbsp;Skill
     </span>

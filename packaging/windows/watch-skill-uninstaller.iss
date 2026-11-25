@@ -18,6 +18,7 @@ SolidCompression=yes
 Uninstallable=no
 CreateUninstallRegKey=no
 UpdateUninstallLogAppName=no
+SetupIconFile=watch-skill.ico
 WizardStyle=modern
 
 #include "common.iss"

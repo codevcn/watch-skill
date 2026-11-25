@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <title>Watch Skill — Dot Matrix Iris</title>
+  <g id="dot-matrix">
+    <circle cx="87.53" cy="55.94" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="83.86" cy="67.25" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="76.87" cy="76.87" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="67.25" cy="83.86" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="55.94" cy="87.53" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="44.06" cy="87.53" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="32.75" cy="83.86" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="23.13" cy="76.87" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="16.14" cy="67.25" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="12.47" cy="55.94" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="12.47" cy="44.06" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="16.14" cy="32.75" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="23.13" cy="23.13" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="32.75" cy="16.14" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="44.06" cy="12.47" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="55.94" cy="12.47" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="67.25" cy="16.14" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="76.87" cy="23.13" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="83.86" cy="32.75" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="87.53" cy="44.06" r="2.4" fill="#3160FC" opacity="0.58"/>
+    <circle cx="78.8" cy="50.0" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="75.95" cy="62.5" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="67.96" cy="72.52" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="56.41" cy="78.08" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="43.59" cy="78.08" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="32.04" cy="72.52" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="24.05" cy="62.5" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="21.2" cy="50.0" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="24.05" cy="37.5" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="32.04" cy="27.48" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="43.59" cy="21.92" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="56.41" cy="21.92" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="67.96" cy="27.48" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="75.95" cy="37.5" r="3.0" fill="#3160FC" opacity="0.82"/>
+    <circle cx="68.29" cy="57.58" r="3.4" fill="#3160FC"/>
+    <circle cx="57.58" cy="68.29" r="3.4" fill="#3160FC"/>
+    <circle cx="42.42" cy="68.29" r="3.4" fill="#3160FC"/>
+    <circle cx="31.71" cy="57.58" r="3.4" fill="#3160FC"/>
+    <circle cx="31.71" cy="42.42" r="3.4" fill="#3160FC"/>
+    <circle cx="42.42" cy="31.71" r="3.4" fill="#3160FC"/>
+    <circle cx="57.58" cy="31.71" r="3.4" fill="#3160FC"/>
+    <circle cx="68.29" cy="42.42" r="3.4" fill="#3160FC"/>
+  </g>
+  <path d="M44.0 37.5L64.0 50.0L44.0 62.5Z" fill="#3160FC"/>
+</svg>

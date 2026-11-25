@@ -23,6 +23,7 @@ ChangesEnvironment=yes
 Uninstallable=yes
 UninstallDisplayName=Watch Skill
 UninstallDisplayIcon={app}\watch-skill.exe
+SetupIconFile=watch-skill.ico
 CloseApplications=force
 CloseApplicationsFilter=*.exe,*.dll,*.pyd
 RestartApplications=no
