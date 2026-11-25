@@ -66,22 +66,27 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "serve --help failed with exit code $LASTEXITCODE" }
 
           # Verify frozen MCP server starts over stdio and exposes all 39 tools
+          $env:PYTHONUTF8 = "1"
           uv run python -c @"
-          import json, subprocess
-          exe = r'./dist/watch-skill/watch-skill.exe'
-          msgs = [
-              {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 'ci-smoke', 'version': '1.0'}}},
-              {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
-              {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list', 'params': {}},
-          ]
-          raw = '\n'.join(json.dumps(m) for m in msgs) + '\n'
-          res = subprocess.run([exe, 'serve'], input=raw, capture_output=True, text=True, timeout=60)
-          assert res.returncode == 0, f'serve failed ({res.returncode}): {res.stderr}'
-          responses = [json.loads(line) for line in res.stdout.splitlines() if line.strip()]
-          tools_resp = next(r for r in responses if r.get('id') == 2)
-          tools = tools_resp['result']['tools']
-          assert len(tools) == 39, f'expected 39 tools, got {len(tools)}'
-          print(f'Frozen MCP stdio handshake OK: {len(tools)} tools registered')
+          import asyncio, pathlib
+          from fastmcp import Client
+          from fastmcp.client.transports import StdioTransport
+
+          exe = str(pathlib.Path('./dist/watch-skill/watch-skill.exe').resolve())
+
+          async def main():
+              async with Client(StdioTransport(command=exe, args=['serve'])) as client:
+                  tools = await client.list_tools()
+                  assert len(tools) == 39, f'expected 39 tools, got {len(tools)}'
+                  by_name = {t.name: t for t in tools}
+                  wv = set(by_name['watch_video'].inputSchema.get('properties', {}).keys())
+                  for k in ('resolution', 'timestamps', 'transcript_only', 'cloud_stt'):
+                      assert k in wv, f'missing {k} in watch_video schema'
+                  gm = set(by_name['get_moment'].inputSchema.get('properties', {}).keys())
+                  assert 'max_frames' in gm, 'missing max_frames in get_moment schema'
+                  print(f'Frozen MCP stdio handshake OK: {len(tools)} tools registered')
+
+          asyncio.run(main())
           "@
           if ($LASTEXITCODE -ne 0) { throw "MCP stdio handshake failed" }
 
